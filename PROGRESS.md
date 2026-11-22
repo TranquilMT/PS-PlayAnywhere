@@ -117,6 +117,10 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - The in-stream Display only switch hides the touch overlays, releases held phone controls and suppresses phone controller updates while video and audio continue. Direct DualSense play on the PS5 requires a physical test with a separate Remote Play account.
 - The in-stream 30 → 60 frame generation switch enables an experimental OpenGL ES renderer. It estimates motion between consecutive decoded frames and renders a midpoint for roughly 30 FPS input. The switch defaults to off and the direct video path remains available. The Android integration build and unit tests passed for the frame generation implementation. Display cadence, added latency, motion artifacts and thermal cost need device testing.
 
+## Off-network play
+
+- Documented 5G play via a home LAN VPN and a manual console entry linked to an existing pairing. End-to-end 5G testing and automatic PSN remote connection remain open.
+
 ## Next actions (strict order)
 1. Complete local PS5 registration using the PSN Account ID and console pairing code.
 2. Verify local streaming in Phase 2.
