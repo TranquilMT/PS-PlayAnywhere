@@ -9,7 +9,7 @@ Each phase has an exit gate. A feature is complete only when build output, test 
 - [x] Add initial native baseline GitHub Actions build workflow
 - [x] Verify first CI result and capture failure logs (runs #2–4 diagnosed in PROGRESS.md)
 - [x] Pass upstream debug packaging, signature and ARM64 checks in CI ([run #5](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45005001825))
-- [x] Pin upstream to a specific source commit and assert its identity in CI (build verification still pending)
+- [x] Pin upstream to a specific source commit and assert its identity in CI
 - [x] Complete third-party license audit for the upstream baseline (see [UPSTREAM.md](docs/UPSTREAM.md))
 - [x] Compare independent upstream builds and document differences ([run #7](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45006004955))
 - [ ] Finish release-environment reproducibility checks by enforcing the remaining dependency hashes
