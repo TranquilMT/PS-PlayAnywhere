@@ -12,7 +12,7 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 | Phase | Name | Status | Evidence / next gate |
 | --- | --- | --- | --- |
 | 0 | Baseline, licensing and reproducibility | COMPLETE | Baseline license audit, repeatable APK payload and strict dependency checksum validation passed. |
-| 1 | Android source integration | IN PROGRESS | Branded ARM64 build and alignment passed. Physical Android 16 installation and launch are pending. |
+| 1 | Android source integration | COMPLETE | The user confirmed that 0.1.1 launches on their Android 16 phone. |
 | 2 | Local console streaming | NOT STARTED | 15-minute gameplay test |
 | 3 | PSN login and discovery | NOT STARTED | Real-account authentication test |
 | 4 | Remote NAT traversal | NOT STARTED | Two external network tests |
@@ -98,8 +98,12 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - 2026-11-22: Audited upstream Android Gradle, wrapper, submodule list, COPYING and remote connectivity documentation.
 - 2026-11-22: Expanded roadmap to 12 gated engineering phases and updated evidence ledger.
 
+## Physical device retest
+
+- The user confirmed that 0.1.1 launches and reached the PS5 registration screen. Pairing is pending entry of the PSN Account ID.
+
 ## Next actions (strict order)
-1. Verify installation and launch on a physical Android 16 ARM64 device.
-2. Complete the Phase 1 device gate, then begin local console registration and streaming in Phase 2.
+1. Complete local PS5 registration using the PSN Account ID and console pairing code.
+2. Verify local streaming in Phase 2.
 
 Do not mark a phase complete based solely on plans, source presence or an unexecuted CI workflow.
