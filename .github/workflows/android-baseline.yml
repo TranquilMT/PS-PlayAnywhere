@@ -55,7 +55,8 @@ jobs:
         run: |
           git -C "$SOURCE_DIR" apply \
             "$GITHUB_WORKSPACE/android/patches/playanywhere-identity.patch" \
-            "$GITHUB_WORKSPACE/android/patches/connection-help.patch"
+            "$GITHUB_WORKSPACE/android/patches/connection-help.patch" \
+            "$GITHUB_WORKSPACE/android/patches/psn-account-lookup.patch"
       - name: Java 17
         uses: actions/setup-java@v4
         with:

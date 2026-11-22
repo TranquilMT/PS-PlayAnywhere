@@ -98,6 +98,10 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - 2026-11-22: Audited upstream Android Gradle, wrapper, submodule list, COPYING and remote connectivity documentation.
 - 2026-11-22: Expanded roadmap to 12 gated engineering phases and updated evidence ledger.
 
+## PS5 registration
+
+- 0.1.2 adds PlayStation sign-in from the registration screen, validates the pasted Sony return link against the current attempt, and fills the Account ID without the public lookup site. Live PSN sign-in and PS5 pairing still need a device test.
+
 ## Physical device retest
 
 - The user confirmed that 0.1.1 launches and reached the PS5 registration screen. Pairing is pending entry of the PSN Account ID.

@@ -1,0 +1,224 @@
+diff --git a/android/app/src/main/java/com/metallic/chiaki/regist/PsnAccountLookup.kt b/android/app/src/main/java/com/metallic/chiaki/regist/PsnAccountLookup.kt
+new file mode 100644
+index 0000000..20668e8
+--- /dev/null
++++ b/android/app/src/main/java/com/metallic/chiaki/regist/PsnAccountLookup.kt
+@@ -0,0 +1,80 @@
++// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
++package com.metallic.chiaki.regist
++
++import android.net.Uri
++import android.util.Base64
++import org.json.JSONException
++import org.json.JSONObject
++import java.io.IOException
++import java.net.HttpURLConnection
++import java.net.URI
++import java.net.URISyntaxException
++import java.net.URL
++import java.nio.ByteBuffer
++import java.nio.ByteOrder
++
++internal object PsnAccountLookup {
++    // Same Remote Play client and endpoints as upstream scripts/psn-account-id.py.
++    private const val CLIENT_ID = "ba495a24-818c-472b-b12d-ff231c1b5745"
++    private const val CLIENT_SECRET = "mvaiZkRsAsI1IBkY"
++    private const val AUTH_BASE = "https://auth.api.sonyentertainmentnetwork.com/2.0/oauth"
++    private const val RETURN_URL = "https://remoteplay.dl.playstation.net/remoteplay/redirect"
++
++    fun loginUri(state: String): Uri = Uri.parse("$AUTH_BASE/authorize").buildUpon()
++        .appendQueryParameter("service_entity", "urn:service-entity:psn")
++        .appendQueryParameter("response_type", "code")
++        .appendQueryParameter("client_id", CLIENT_ID)
++        .appendQueryParameter("redirect_uri", RETURN_URL)
++        .appendQueryParameter("scope", "psn:clientapp")
++        .appendQueryParameter("ui", "pr")
++        .appendQueryParameter("smcid", "remoteplay")
++        .appendQueryParameter("state", state)
++        .build()
++
++    fun redirectCode(value: String, state: String): String? {
++        val url = try { URI(value.trim()) } catch (_: URISyntaxException) { return null }
++        if (url.scheme != "https" || url.rawAuthority != "remoteplay.dl.playstation.net" ||
++            url.rawPath != "/remoteplay/redirect" || url.rawFragment != null) return null
++        val uri = Uri.parse(url.toString())
++        if (uri.getQueryParameters("state").singleOrNull() != state ||
++            uri.getQueryParameter("error") != null) return null
++        return uri.getQueryParameters("code").singleOrNull()?.takeIf { it.isNotBlank() }
++    }
++
++    fun fetchAccountId(code: String): String? = try {
++        val body = "grant_type=authorization_code&code=${Uri.encode(code)}&redirect_uri=${Uri.encode(RETURN_URL)}"
++        val token = request("$AUTH_BASE/token", body)?.getString("access_token")
++        val id = token?.takeIf { it.isNotBlank() }?.let {
++            request("$AUTH_BASE/token/${Uri.encode(it)}")?.getString("user_id")?.toULongOrNull()
++        }
++        id?.let {
++            Base64.encodeToString(ByteBuffer.allocate(8).order(ByteOrder.LITTLE_ENDIAN)
++                .putLong(it.toLong()).array(), Base64.NO_WRAP)
++        }
++    } catch (_: IOException) {
++        null
++    } catch (_: JSONException) {
++        null
++    }
++
++    private fun request(url: String, body: String? = null): JSONObject? {
++        val connection = URL(url).openConnection() as HttpURLConnection
++        try {
++            connection.instanceFollowRedirects = false
++            connection.connectTimeout = 10_000
++            connection.readTimeout = 10_000
++            val client = Base64.encodeToString("$CLIENT_ID:$CLIENT_SECRET".toByteArray(), Base64.NO_WRAP)
++            connection.setRequestProperty("Authorization", "Basic $client")
++            if (body != null) {
++                connection.requestMethod = "POST"
++                connection.doOutput = true
++                connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded")
++                connection.outputStream.use { it.write(body.toByteArray()) }
++            }
++            if (connection.responseCode != 200) return null
++            return connection.inputStream.bufferedReader().use { JSONObject(it.readText()) }
++        } finally {
++            connection.disconnect()
++        }
++    }
++}
+diff --git a/android/app/src/main/java/com/metallic/chiaki/regist/RegistActivity.kt b/android/app/src/main/java/com/metallic/chiaki/regist/RegistActivity.kt
+index 9190f9c..c59bee4 100644
+--- a/android/app/src/main/java/com/metallic/chiaki/regist/RegistActivity.kt
++++ b/android/app/src/main/java/com/metallic/chiaki/regist/RegistActivity.kt
+@@ -5,2 +5,12 @@ package com.metallic.chiaki.regist
+ import android.content.Intent
++import android.content.ActivityNotFoundException
++import android.text.InputType
++import android.widget.EditText
++import android.widget.Toast
++import androidx.lifecycle.lifecycleScope
++import com.google.android.material.dialog.MaterialAlertDialogBuilder
++import kotlinx.coroutines.Dispatchers
++import kotlinx.coroutines.launch
++import kotlinx.coroutines.withContext
++import java.util.UUID
+ import android.os.Bundle
+@@ -52,2 +62,13 @@ class RegistActivity: AppCompatActivity(), RevealActivity
+ 		binding.registButton.setOnClickListener { doRegist() }
++		binding.psnSignInButton.setOnClickListener {
++			val state = UUID.randomUUID().toString()
++			viewModel.psnState = state
++			try {
++				startActivity(Intent(Intent.ACTION_VIEW, PsnAccountLookup.loginUri(state)))
++			} catch (_: ActivityNotFoundException) {
++				viewModel.psnState = null
++				Toast.makeText(this, R.string.psn_browser_unavailable, Toast.LENGTH_LONG).show()
++			}
++		}
++		binding.psnPasteButton.setOnClickListener { showPsnRedirectDialog() }
+ 
+@@ -72,2 +93,5 @@ class RegistActivity: AppCompatActivity(), RevealActivity
+ 		viewModel.ps4Version.observe(this, Observer {
++			val loginVisibility = if (it == RegistViewModel.ConsoleVersion.PS4_LT_7) View.GONE else View.VISIBLE
++			binding.psnSignInButton.visibility = loginVisibility
++			binding.psnPasteButton.visibility = loginVisibility
+ 			binding.psnAccountIdHelpGroup.visibility = if(it == RegistViewModel.ConsoleVersion.PS4_LT_7) View.GONE else View.VISIBLE
+@@ -83,2 +107,49 @@ class RegistActivity: AppCompatActivity(), RevealActivity
+ 
++	private fun showPsnRedirectDialog() {
++		val state = viewModel.psnState
++		if (state == null) {
++			Toast.makeText(this, R.string.psn_sign_in_first, Toast.LENGTH_LONG).show()
++			return
++		}
++		val input = EditText(this).apply {
++			inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_VARIATION_URI
++			isSaveEnabled = false
++			importantForAutofill = View.IMPORTANT_FOR_AUTOFILL_NO
++			setSingleLine(true)
++		}
++		val dialog = MaterialAlertDialogBuilder(this)
++			.setTitle(R.string.psn_paste_redirect)
++			.setMessage(R.string.psn_redirect_instructions)
++			.setView(input)
++			.setNegativeButton(android.R.string.cancel, null)
++			.setPositiveButton(android.R.string.ok, null)
++			.show()
++		dialog.getButton(android.content.DialogInterface.BUTTON_POSITIVE).setOnClickListener {
++			val code = PsnAccountLookup.redirectCode(input.text.toString(), state)
++			if (code == null) {
++				input.error = getString(R.string.psn_redirect_invalid)
++				return@setOnClickListener
++			}
++			viewModel.psnState = null
++			input.text.clear()
++			dialog.dismiss()
++			binding.psnPasteButton.isEnabled = false
++			binding.psnSignInButton.isEnabled = false
++			binding.registButton.isEnabled = false
++			lifecycleScope.launch {
++				val id = withContext(Dispatchers.IO) { PsnAccountLookup.fetchAccountId(code) }
++				if (id == null) {
++					Toast.makeText(this@RegistActivity, R.string.psn_lookup_failed, Toast.LENGTH_LONG).show()
++				} else if (viewModel.ps4Version.value != RegistViewModel.ConsoleVersion.PS4_LT_7) {
++					binding.psnIdEditText.setText(id)
++					binding.psnIdEditText.error = null
++					binding.pinEditText.requestFocus()
++				}
++				binding.psnPasteButton.isEnabled = true
++				binding.psnSignInButton.isEnabled = true
++				binding.registButton.isEnabled = true
++			}
++		}
++	}
++
+ 	private fun doRegist()
+diff --git a/android/app/src/main/java/com/metallic/chiaki/regist/RegistViewModel.kt b/android/app/src/main/java/com/metallic/chiaki/regist/RegistViewModel.kt
+index ab7253f..49119c8 100644
+--- a/android/app/src/main/java/com/metallic/chiaki/regist/RegistViewModel.kt
++++ b/android/app/src/main/java/com/metallic/chiaki/regist/RegistViewModel.kt
+@@ -18,2 +18,4 @@ class RegistViewModel: ViewModel()
+ 
++	internal var psnState: String? = null
++
+ 	val ps4Version = MutableLiveData<ConsoleVersion>(ConsoleVersion.PS5)
+diff --git a/android/app/src/main/res/layout/activity_regist.xml b/android/app/src/main/res/layout/activity_regist.xml
+index d9cf078..72f80fd 100644
+--- a/android/app/src/main/res/layout/activity_regist.xml
++++ b/android/app/src/main/res/layout/activity_regist.xml
+@@ -132,2 +132,17 @@
+ 
++            <com.google.android.material.button.MaterialButton
++                android:id="@+id/psnSignInButton"
++                android:layout_width="match_parent"
++                android:layout_height="wrap_content"
++                android:text="@string/psn_sign_in"
++                app:layout_constraintTop_toBottomOf="@id/psnAccountIdHelpURLTextView" />
++
++            <com.google.android.material.button.MaterialButton
++                android:id="@+id/psnPasteButton"
++                style="@style/Widget.MaterialComponents.Button.TextButton"
++                android:layout_width="match_parent"
++                android:layout_height="wrap_content"
++                android:text="@string/psn_paste_redirect"
++                app:layout_constraintTop_toBottomOf="@id/psnSignInButton" />
++
+             <com.google.android.material.textfield.TextInputLayout
+@@ -138,3 +153,3 @@
+                 app:startIconDrawable="@drawable/ic_psn_id"
+-                app:layout_constraintTop_toBottomOf="@id/psnAccountIdHelpURLTextView"
++                app:layout_constraintTop_toBottomOf="@id/psnPasteButton"
+                 android:layout_marginTop="16dp">
+diff --git a/android/app/src/main/res/values/strings_psn_lookup.xml b/android/app/src/main/res/values/strings_psn_lookup.xml
+new file mode 100644
+index 0000000..6a166e5
+--- /dev/null
++++ b/android/app/src/main/res/values/strings_psn_lookup.xml
+@@ -0,0 +1,9 @@
++<resources>
++    <string name="psn_sign_in">Sign in with PlayStation</string>
++    <string name="psn_paste_redirect">Paste sign-in return link</string>
++    <string name="psn_redirect_instructions">After signing in on the PlayStation page, copy the full return URL from your browser and paste it here. The return page may appear blank. Keep the link private.</string>
++    <string name="psn_browser_unavailable">A web browser is required for PlayStation sign-in.</string>
++    <string name="psn_sign_in_first">Start PlayStation sign-in first.</string>
++    <string name="psn_redirect_invalid">Paste the PlayStation return link from the current sign-in.</string>
++    <string name="psn_lookup_failed">Could not get the Account ID. Start a new sign-in or enter the Account ID manually.</string>
++</resources>
