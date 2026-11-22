@@ -6,12 +6,12 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 **Active:** Phase 0 — Native baseline build.
 **Works:** GitHub repository, project documentation, committed GitHub Actions workflow definition.
 **Not verified:** CI build success, APK installation, console pairing, video/audio, controllers, PSN authentication, remote connection, frame interpolation.
-**Blockers:** First CI build result has not been verified; native third-party licenses still need full review; physical PS5/Android testing is required.
+**Blockers:** Both initial CI runs failed at Android SDK setup, before native compilation. Fix committed in a40cad2; its new run must be checked. Native third-party licenses and physical device tests remain pending.
 
 ## Phase gates
 | Phase | Name | Status | Evidence / next gate |
 | --- | --- | --- | --- |
-| 0 | Baseline, licensing and reproducibility | IN PROGRESS | Source pinned; CI provenance checks committed; successful run missing |
+| 0 | Baseline, licensing and reproducibility | IN PROGRESS | Source pinned; CI provenance checks committed; first two runs failed in SDK setup; fix pending verification |
 | 1 | Android source integration | NOT STARTED | Branded native APK installs |
 | 2 | Local console streaming | NOT STARTED | 15-minute gameplay test |
 | 3 | PSN login and discovery | NOT STARTED | Real-account authentication test |
@@ -32,6 +32,12 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - Native source is compiled through root `CMakeLists.txt`; upstream has git submodules.
 - Upstream COPYING contains GNU AGPL v3.
 - Remote PSN setup docs state IPv4-only and warn that some NAT types cannot hole punch.
+
+## Verified CI failures
+- Run #1: failed (2026-11-22).
+- Run #2: https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45004276383 — **failure**, job 137152274427.
+- Job log: `android-actions/setup-android@v3` invokes `sdkmanager tools`, which fails with `Warning: Failed to find package 'tools'`; native compilation step was skipped.
+- Fix commit `a40cad20cbbe2c9e286b439f4b0af8d8660c0858`: remove failing setup action; use preinstalled SDK manager to install exact platform/build-tools/CMake/NDK packages. Result not yet verified.
 
 ## Change log
 - 2026-11-22: Pinned upstream Chiaki revision in workflow and added exact commit assertion, Gradle wrapper presence check and nonempty SHA-256 manifest check.
