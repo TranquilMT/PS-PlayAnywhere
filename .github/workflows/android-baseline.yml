@@ -45,12 +45,21 @@ jobs:
           echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
           "$SDKMANAGER" --list_installed
-      - name: Install host Protocol Buffers compiler
+      - name: Install and test host Protocol Buffers toolchain
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y protobuf-compiler
-          command -v protoc
+          sudo apt-get install -y protobuf-compiler python3-protobuf
           protoc --version
+          /usr/bin/python3 -c 'import google.protobuf; print(google.protobuf.__version__)'
+
+          proto_dir="$GITHUB_WORKSPACE/upstream/lib/protobuf"
+          generated_dir="$(mktemp -d)"
+          trap 'rm -rf "$generated_dir"' EXIT
+          protoc --proto_path="$proto_dir" --descriptor_set_out="$generated_dir/takion.pb" "$proto_dir/takion.proto"
+          cd "$generated_dir"
+          /usr/bin/python3 "$GITHUB_WORKSPACE/upstream/third-party/nanopb/generator/nanopb_generator.py" takion.pb
+          test -s takion.pb.c
+          test -s takion.pb.h
       - name: Validate Gradle wrapper checksum metadata
         run: |
           test -f upstream/android/gradle/wrapper/gradle-wrapper.jar
@@ -61,11 +70,16 @@ jobs:
         run: |
           chmod +x gradlew
           ./gradlew :app:assembleDebug --stacktrace --no-daemon
-      - name: SHA-256 checksum
-        if: success()
+      - name: Verify APK and record SHA-256
         run: |
-          find upstream/android/app/build/outputs/apk/debug -name '*.apk' -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS.txt
-          test -s SHA256SUMS.txt
+          apk=upstream/android/app/build/outputs/apk/debug/app-debug.apk
+          build_tools="$ANDROID_HOME/build-tools/35.0.0"
+          test -s "$apk"
+          "$build_tools/apksigner" verify --verbose "$apk"
+          "$build_tools/aapt" dump badging "$apk" > apk-badging.txt
+          grep -F "package: name='com.metallic.chiaki'" apk-badging.txt
+          grep -E "^native-code: .*'arm64-v8a'" apk-badging.txt
+          sha256sum "$apk" | tee SHA256SUMS.txt
       - name: Upload APK and provenance
         if: success()
         uses: actions/upload-artifact@v4
@@ -75,6 +89,7 @@ jobs:
             upstream/android/app/build/outputs/apk/debug/*.apk
             upstream-commit.txt
             SHA256SUMS.txt
+            apk-badging.txt
       - name: Upload failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4

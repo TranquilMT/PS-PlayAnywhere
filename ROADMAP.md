@@ -7,7 +7,8 @@ Each phase has an exit gate. A feature is complete only when build output, test 
 - [x] Inspect upstream Android Gradle and CMake configuration
 - [x] Identify upstream AGPL-3.0 license and required submodules
 - [x] Add initial native baseline GitHub Actions build workflow
-- [ ] Verify first CI result and capture failure logs
+- [x] Verify first CI result and capture failure logs (runs #2–4 diagnosed in PROGRESS.md)
+- [ ] Pass native APK packaging, signature and ARM64 checks in CI
 - [x] Pin upstream to a specific source commit and assert its identity in CI (build verification still pending)
 - [ ] Complete third-party license audit (initial source/license inventory recorded in docs/UPSTREAM.md)
 - [ ] Validate reproducible release environment (pinned source and toolchain configuration committed; successful run pending)

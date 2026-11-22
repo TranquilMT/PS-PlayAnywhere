@@ -6,12 +6,12 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 **Active:** Phase 0 — Native baseline build.
 **Works:** GitHub repository, project documentation, committed GitHub Actions workflow definition.
 **Not verified:** CI build success, APK installation, console pairing, video/audio, controllers, PSN authentication, remote connection, frame interpolation.
-**Blockers:** Run #3 failed at CMake configuration because host `protoc` was missing. Fix commit c0dc35d adds protobuf-compiler installation; next run must verify. No APK yet. Native third-party licenses and physical device tests remain pending.
+**Blockers:** Run #4 passed the `protoc` check and reached native compilation, where nanopb failed to import `google.protobuf`. CI now installs the Python runtime for the interpreter used by CMake and tests Takion code generation before Gradle. A successful APK build, resolved dependency audit and physical device tests remain pending.
 
 ## Phase gates
 | Phase | Name | Status | Evidence / next gate |
 | --- | --- | --- | --- |
-| 0 | Baseline, licensing and reproducibility | IN PROGRESS | Source pinned; CI provenance checks committed; first two runs failed in SDK setup; fix pending verification |
+| 0 | Baseline, licensing and reproducibility | IN PROGRESS | Takion code generation passed locally. CI still needs to verify APK build, debug signature, ARM64 packaging and checksum. |
 | 1 | Android source integration | NOT STARTED | Branded native APK installs |
 | 2 | Local console streaming | NOT STARTED | 15-minute gameplay test |
 | 3 | PSN login and discovery | NOT STARTED | Real-account authentication test |
@@ -33,6 +33,11 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - Upstream COPYING contains GNU AGPL v3.
 - Remote PSN setup docs state IPv4-only and warn that some NAT types cannot hole punch.
 
+## Verified CI run #4
+- [Run #4](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45004670277), job `137153477589`, built commit `c0dc35d`.
+- The host compiler and CMake configuration passed. Native ARM64 build failed when `/usr/bin/python3` ran the pinned nanopb generator and raised `ModuleNotFoundError: No module named 'google'`. APK upload was skipped.
+- The pinned generator produced both `takion.pb.c` and `takion.pb.h` locally with Python Protobuf 4.25.3 and libprotoc 25.1. The GitHub runner uses the Ubuntu compiler and Python package, which the new CI step exercises against the same schema.
+
 ## Verified CI run #3
 - https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45004455273 (job 137152820250).
 - Observed: checkout, source SHA assertion, Java 17, Android toolchain installation, Gradle wrapper checks **success**.
@@ -53,8 +58,8 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - 2026-11-22: Expanded roadmap to 12 gated engineering phases and updated evidence ledger.
 
 ## Next actions (strict order)
-1. Inspect GitHub Actions baseline build run and diagnose errors; workflow was updated to trigger on push.
-2. Fix any native build failures and record successful artifact SHA-256.
+1. Verify the next baseline run passes the Takion generator step, and inspect any subsequent native build failure.
+2. Record the verified APK's package, ABI, signature and SHA-256 after CI produces it.
 3. Finish third-party licensing review, then integrate native source into PS PlayAnywhere.
 4. Begin physical-device local pairing tests before claiming remote support.
 
