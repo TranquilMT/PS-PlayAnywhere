@@ -1,12 +1,15 @@
 diff --git a/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt b/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
-index 6465527..bfc10d4 100644
+index 6465527..6f7ddc0 100644
 --- a/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
 +++ b/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
-@@ -21,2 +21,3 @@ import com.metallic.chiaki.common.ext.viewModelFactory
+@@ -21,2 +21,6 @@ import com.metallic.chiaki.common.ext.viewModelFactory
  import com.metallic.chiaki.databinding.ActivityMainBinding
 +import com.metallic.chiaki.databinding.DialogStreamSetupBinding
++import com.metallic.chiaki.lib.ConnectVideoProfile
++import com.metallic.chiaki.lib.VideoResolutionPreset
++import com.metallic.chiaki.lib.VideoFPSPreset
  import com.metallic.chiaki.lib.ConnectInfo
-@@ -40,2 +41,7 @@ class MainActivity : AppCompatActivity()
+@@ -40,2 +44,7 @@ class MainActivity : AppCompatActivity()
  		setContentView(binding.root)
 +		if (savedInstanceState == null) {
 +			val intro = layoutInflater.inflate(R.layout.playanywhere_intro, null)
@@ -14,27 +17,55 @@ index 6465527..bfc10d4 100644
 +			intro.postDelayed({ (intro.parent as? android.view.ViewGroup)?.removeView(intro) }, 5000L)
 +		}
  
-@@ -183,6 +189,22 @@ class MainActivity : AppCompatActivity()
+@@ -183,6 +192,51 @@ class MainActivity : AppCompatActivity()
  				val connectInfo = ConnectInfo(host.isPS5, host.host, registeredHost.rpRegistKey, registeredHost.rpKey, Preferences(this).videoProfile)
 -				Intent(this, StreamActivity::class.java).let {
 -					it.putExtra(StreamActivity.EXTRA_CONNECT_INFO, connectInfo)
 -					startActivity(it)
--				}
 +				val setup = DialogStreamSetupBinding.inflate(layoutInflater)
 +				val defaults = getSharedPreferences("stream_options", MODE_PRIVATE)
 +				setup.frameGenerationSwitch.isChecked = defaults.getBoolean(StreamActivity.EXTRA_FRAME_GENERATION, false)
 +				setup.displayOnlySwitch.isChecked = defaults.getBoolean(StreamActivity.EXTRA_DISPLAY_ONLY, false)
++				val qualityKey = "quality_" + registeredHost.id
++				setup.qualityGroup.visibility = if (host.isPS5) android.view.View.VISIBLE else android.view.View.GONE
++				setup.qualityGroup.check(when (defaults.getInt(qualityKey, 0)) {
++					720 -> R.id.quality720
++					1080 -> R.id.quality1080
++					else -> R.id.qualityDefault
++				})
++				fun selectedProfile(): ConnectVideoProfile {
++					val original = connectInfo.videoProfile
++					val resolution = when (setup.qualityGroup.checkedRadioButtonId) {
++						R.id.quality720 -> VideoResolutionPreset.RES_720P
++						R.id.quality1080 -> VideoResolutionPreset.RES_1080P
++						else -> return original
++					}
++					if (!host.isPS5) return original
++					val fps = if (original.maxFPS == 60) VideoFPSPreset.FPS_60 else VideoFPSPreset.FPS_30
++					return ConnectVideoProfile.preset(resolution, fps, original.codec)
++				}
++				fun refreshSummary() {
++					val profile = selectedProfile()
++					val rate = if (setup.frameGenerationSwitch.isChecked) 30 else profile.maxFPS
++					setup.sourceSummary.text = getString(R.string.stream_requested_profile,
++						profile.width, profile.height, rate, profile.bitrate / 1000.0)
+ 				}
++				setup.qualityGroup.setOnCheckedChangeListener { _, _ -> refreshSummary() }
++				setup.frameGenerationSwitch.setOnCheckedChangeListener { _, _ -> refreshSummary() }
++				refreshSummary()
 +				MaterialAlertDialogBuilder(this)
 +					.setTitle(R.string.stream_setup_title)
 +					.setView(setup.root)
 +					.setNegativeButton(android.R.string.cancel, null)
 +					.setPositiveButton(R.string.stream_setup_start) { _, _ ->
++						val profile = selectedProfile()
 +						defaults.edit()
++							.putInt(qualityKey, if (setup.qualityGroup.checkedRadioButtonId == R.id.qualityDefault) 0 else profile.height)
 +							.putBoolean(StreamActivity.EXTRA_FRAME_GENERATION, setup.frameGenerationSwitch.isChecked)
 +							.putBoolean(StreamActivity.EXTRA_DISPLAY_ONLY, setup.displayOnlySwitch.isChecked)
 +							.apply()
 +						val stream = Intent(this, StreamActivity::class.java)
-+							.putExtra(StreamActivity.EXTRA_CONNECT_INFO, connectInfo)
++							.putExtra(StreamActivity.EXTRA_CONNECT_INFO, connectInfo.copy(videoProfile = profile))
 +							.putExtra(StreamActivity.EXTRA_FRAME_GENERATION, setup.frameGenerationSwitch.isChecked)
 +							.putExtra(StreamActivity.EXTRA_DISPLAY_ONLY, setup.displayOnlySwitch.isChecked)
 +						startActivity(stream)
@@ -82,10 +113,10 @@ index dd32a40..68f141e 100644
  	fun attachToSurfaceView(surfaceView: SurfaceView)
 diff --git a/android/app/src/main/java/com/metallic/chiaki/stream/InterpolationView.kt b/android/app/src/main/java/com/metallic/chiaki/stream/InterpolationView.kt
 new file mode 100644
-index 0000000..6ff53eb
+index 0000000..7ebfbc8
 --- /dev/null
 +++ b/android/app/src/main/java/com/metallic/chiaki/stream/InterpolationView.kt
-@@ -0,0 +1,336 @@
+@@ -0,0 +1,344 @@
 +// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 +package com.metallic.chiaki.stream
 +
@@ -406,11 +437,19 @@ index 0000000..6ff53eb
 +                } else if (phase > 0.75) {
 +                    gl_FragColor = texture2D(afterFrame, uv);
 +                } else {
-+                    vec3 field = texture2D(motion, uv).rgb;
 +                    vec4 current = texture2D(afterFrame, uv);
 +                    vec4 previous = texture2D(beforeFrame, uv);
 +                    vec3 weights = vec3(0.299,0.587,0.114);
 +                    float change = dot(abs(current.rgb-previous.rgb),weights);
++                    if (change <= 0.002) {
++                        gl_FragColor = current;
++                        return;
++                    }
++                    vec3 field = texture2D(motion, uv).rgb;
++                    if (field.z == 0.0) {
++                        gl_FragColor = current;
++                        return;
++                    }
 +                    vec2 halfShift = (field.xy * 64.0 - 32.0) * 0.5 * pixel;
 +                    vec4 a = texture2D(beforeFrame, uv - halfShift);
 +                    vec4 b = texture2D(afterFrame, uv + halfShift);
@@ -635,10 +674,10 @@ index 77a3165..8bd6f1f 100644
              <com.google.android.material.switchmaterial.SwitchMaterial
 diff --git a/android/app/src/main/res/layout/dialog_stream_setup.xml b/android/app/src/main/res/layout/dialog_stream_setup.xml
 new file mode 100644
-index 0000000..7e85d1c
+index 0000000..c1ef27c
 --- /dev/null
 +++ b/android/app/src/main/res/layout/dialog_stream_setup.xml
-@@ -0,0 +1,38 @@
+@@ -0,0 +1,47 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
 +    android:layout_width="match_parent"
@@ -650,6 +689,15 @@ index 0000000..7e85d1c
 +    android:paddingEnd="24dp"
 +    android:paddingTop="8dp"
 +    android:paddingBottom="8dp">
++
++    <RadioGroup android:id="@+id/qualityGroup" android:orientation="vertical"
++        android:layout_width="match_parent" android:layout_height="wrap_content">
++        <RadioButton android:id="@+id/qualityDefault" android:text="@string/quality_settings" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" />
++        <RadioButton android:id="@+id/quality720" android:text="@string/quality_720" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" />
++        <RadioButton android:id="@+id/quality1080" android:text="@string/quality_1080" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" />
++    </RadioGroup>
++    <TextView android:id="@+id/sourceSummary" android:accessibilityLiveRegion="polite"
++        android:layout_width="match_parent" android:layout_height="wrap_content" android:layout_marginBottom="12dp" />
 +
 +    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/stream_option_panel" android:padding="12dp">
 +    <com.google.android.material.switchmaterial.SwitchMaterial
@@ -824,10 +872,10 @@ index 9ee2e9b..c6b696d 100644
      <dimen name="floating_action_button_speed_dial_anim_offset">48dp</dimen>
 diff --git a/android/app/src/main/res/values/strings_display_only.xml b/android/app/src/main/res/values/strings_display_only.xml
 new file mode 100644
-index 0000000..5b705d9
+index 0000000..d9d71c6
 --- /dev/null
 +++ b/android/app/src/main/res/values/strings_display_only.xml
-@@ -0,0 +1,9 @@
+@@ -0,0 +1,13 @@
 +<resources>
 +    <string name="stream_display_only">Display only</string>
 +    <string name="stream_frame_generation">30 → 60 frame generation (beta)</string>
@@ -836,4 +884,8 @@ index 0000000..5b705d9
 +    <string name="stream_setup_start">Start stream</string>
 +    <string name="stream_setup_frame_note">The phone’s GPU estimates motion between 30 FPS stream frames to draw a new frame halfway between them.</string>
 +    <string name="stream_setup_display_note">Watch on your phone with touch controls and phone controller input disabled.</string>
++    <string name="quality_settings">Use my video settings</string>
++    <string name="quality_720">720p · Lower bandwidth</string>
++    <string name="quality_1080">1080p · Higher detail</string>
++    <string name="stream_requested_profile">Requested stream · %1$d × %2$d · %3$d FPS · %4$.1f Mbps</string>
 +</resources>

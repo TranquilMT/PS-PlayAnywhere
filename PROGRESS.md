@@ -138,3 +138,7 @@ Fresh launches show a five-second branded loading screen. Frame generation reque
 ## Version 0.1.8
 
 A three-stage GPU motion search refines midpoint synthesis. The Android shaders ran on desktop Mesa against a known 16-pixel horizontal pan. Mean RGB error against the true midpoint in the interior was 0.055 levels out of 255, versus 44.69 for a repeated source frame. Device performance and complex scene quality remain open. Streaming options now remember the last selections.
+
+## Version 0.1.9
+
+Added pre-stream PS5 quality presets, per-console resolution choice and a live requested-profile summary. Midpoint synthesis skips unnecessary sampling on static and zero-confidence regions. Physical streaming and GPU performance measurements remain open.

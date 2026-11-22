@@ -56,6 +56,7 @@ The Phase 0 build artifact is an upstream Chiaki debug reference used to verify 
 **Exit:** Remote play succeeds on two different off-network connections.
 
 ## 5. Video pipeline and latency
+- [x] Select and preview the requested PS5 resolution, source FPS and target bitrate before streaming
 - [ ] MediaCodec hardware decode with supported codecs
 - [ ] Configurable resolution, bitrate and source frame rate
 - [ ] Optimize buffering and frame pacing
