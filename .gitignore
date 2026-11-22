@@ -1,0 +1,27 @@
+# Android / Gradle
+.gradle/
+build/
+**/build/
+local.properties
+*.apk
+*.aab
+
+# Credentials / signing
+*.jks
+*.keystore
+*.p12
+*.pem
+*.key
+.env
+.env.*
+
+# Native builds
+.cxx/
+cmake-build-*/
+*.so
+*.o
+
+# IDE / OS
+.idea/
+*.iml
+.DS_Store
