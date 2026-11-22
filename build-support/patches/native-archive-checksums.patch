@@ -1,0 +1,16 @@
+diff --git a/cmake/JsoncExternalProject.cmake b/cmake/JsoncExternalProject.cmake
+index 6d9ca75..5a50fb3 100644
+--- a/cmake/JsoncExternalProject.cmake
++++ b/cmake/JsoncExternalProject.cmake
+@@ -11,2 +11,3 @@ FetchContent_Declare(json-c
+ 	URL https://github.com/json-c/json-c/archive/refs/tags/json-c-0.17-20230812.tar.gz
++	URL_HASH SHA256=024d302a3aadcbf9f78735320a6d5aedf8b77876c8ac8bbb95081ca55054c7eb
+ )
+diff --git a/cmake/MiniupnpcExternalProject.cmake b/cmake/MiniupnpcExternalProject.cmake
+index 20d94de..cb18b9e 100644
+--- a/cmake/MiniupnpcExternalProject.cmake
++++ b/cmake/MiniupnpcExternalProject.cmake
+@@ -11,2 +11,3 @@ FetchContent_Declare(miniupnpc
+ 	URL https://github.com/miniupnp/miniupnp/archive/refs/tags/miniupnpc_2_2_8.tar.gz
++	URL_HASH SHA256=3d0d49f761f09c1321ceb663d1b008825361d7bd242640c60ae467e82642502a
+ 	SOURCE_SUBDIR miniupnpc
