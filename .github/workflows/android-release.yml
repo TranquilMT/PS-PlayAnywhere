@@ -1,0 +1,48 @@
+name: PS PlayAnywhere Android release
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/android-release.yml']
+
+concurrency: ps-playanywhere-android-release
+
+jobs:
+  android:
+    uses: ./.github/workflows/android-baseline.yml
+    with:
+      integration: true
+    permissions:
+      contents: read
+  publish:
+    needs: android
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: ps-playanywhere-debug-integration-${{ github.run_attempt }}
+          path: artifact
+      - name: Publish latest debug release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cd artifact
+          sha256sum --check SHA256SUMS.txt
+          grep -F "versionCode='5' versionName='0.1.4'" apk-badging.txt
+          cp engine/chiaki/android/app/build/outputs/apk/debug/app-debug.apk PS-PlayAnywhere-0.1.4-debug.apk
+          sha256sum PS-PlayAnywhere-0.1.4-debug.apk > PS-PlayAnywhere-0.1.4-SHA256.txt
+          cat > release-notes.md <<'NOTES'
+          Android debug build for physical testing.
+
+          - Routes on-screen control events from the active controller or touchpad overlay.
+          - Sends hardware trigger presses and releases immediately and routes joystick motion through the streaming activity.
+          - The on-screen controls still need a physical retest.
+
+          This GitHub build uses a CI debug signing key. Android may reject an in-place update from the earlier locally signed 0.1.3 APK. Uninstalling an existing copy would remove its local data.
+          NOTES
+          gh release create v0.1.4 PS-PlayAnywhere-0.1.4-debug.apk PS-PlayAnywhere-0.1.4-SHA256.txt \
+            --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
+            --title "PS PlayAnywhere 0.1.4 (Android debug)" --notes-file release-notes.md --latest
