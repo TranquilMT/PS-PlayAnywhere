@@ -112,6 +112,11 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 
 - User reported that pairing and streaming work but controls did not respond. The app now routes input from the selected touch overlay, dispatches joystick motion at the activity boundary, and sends digital trigger changes immediately. Phone retest is pending.
 
+## Display only and 30 → 60 FPS
+
+- The in-stream Display only switch hides the touch overlays, releases held phone controls and suppresses phone controller updates while video and audio continue. Direct DualSense play on the PS5 requires a physical test with a separate Remote Play account.
+- The current Android MediaCodec path presents directly to SurfaceView. The roadmap now specifies a GPU-readable path and motion-interpolated midpoint frames for the experimental 30 → 60 FPS target. Frame synthesis is pending.
+
 ## Next actions (strict order)
 1. Complete local PS5 registration using the PSN Account ID and console pairing code.
 2. Verify local streaming in Phase 2.

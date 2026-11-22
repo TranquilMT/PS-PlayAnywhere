@@ -70,11 +70,14 @@ The Phase 0 build artifact is an upstream Chiaki debug reference used to verify 
 - [ ] Touchpad, triggers, vibration support where platform allows
 - [ ] Touch overlay and remappable controls
 - [ ] Input focus, disconnection and reconnect handling
+- [ ] Verify Display only mode with Remote Play on a second PS5 account and the DualSense connected to the console on the main account
 **Exit:** Full controller test checklist passes during a remote session.
 
 ## 7. Experimental 30 → 60 FPS display interpolation
 - [ ] Establish baseline 30 FPS input and latency measurements
-- [ ] Prototype motion estimation and intermediate frame synthesis
+- [ ] Route decoded frames to a GPU-readable SurfaceTexture while retaining the direct SurfaceView path
+- [ ] Estimate motion between adjacent frames and synthesize one midpoint frame per pair on the phone
+- [ ] Pace real and generated frames at 16.7 ms intervals for a steady 30 FPS source and verify each generated frame is distinct
 - [ ] Compare GPU Vulkan/OpenGL ES implementations
 - [ ] Test UI/HUD ghosting, camera pans and fast motion
 - [ ] Record extra frame latency, battery use and thermal cost
