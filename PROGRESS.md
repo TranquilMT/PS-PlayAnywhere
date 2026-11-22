@@ -146,3 +146,7 @@ Added pre-stream PS5 quality presets, per-console resolution choice and a live r
 ## Version 0.1.10
 
 540p Data saver and estimated hourly video data are available in PS5 streaming setup. The expected signing certificate SHA-256 is 2bb881c791a9fdb5c5ad212336818df9817b7daefa957c8c729768e299663407. Keep the keystore and its password private.
+
+## Version 0.1.11
+
+Streaming options can limit requested video bitrate to 5 Mbps independently of resolution. Each paired console remembers its limit and the usage preview uses the effective rate. Device testing is pending.

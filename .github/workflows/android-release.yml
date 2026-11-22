@@ -47,22 +47,22 @@ jobs:
           expected=2bb881c791a9fdb5c5ad212336818df9817b7daefa957c8c729768e299663407
           certs=$("$signer" verify --print-certs signed.apk)
           actual=$(sed -n 's/^Signer #[0-9]* certificate SHA-256 digest: //p' <<< "$certs")
-          [[ "$actual" == "$expected" ]] || { echo "Release signer differs from v0.1.10"; exit 1; }
+          [[ "$actual" == "$expected" ]] || { echo "Release signer differs from v0.1.11"; exit 1; }
       - name: Publish latest debug release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd artifact
           sha256sum --check SHA256SUMS.txt
-          grep -F "versionCode='11' versionName='0.1.10'" apk-badging.txt
-          cp signed.apk PS-PlayAnywhere-0.1.10-debug.apk
-          sha256sum PS-PlayAnywhere-0.1.10-debug.apk > PS-PlayAnywhere-0.1.10-SHA256.txt
+          grep -F "versionCode='12' versionName='0.1.11'" apk-badging.txt
+          cp signed.apk PS-PlayAnywhere-0.1.11-debug.apk
+          sha256sum PS-PlayAnywhere-0.1.11-debug.apk > PS-PlayAnywhere-0.1.11-SHA256.txt
           cat > release-notes.md <<'NOTES'
           Android debug build for physical testing.
 
-          - Adds a 540p Data saver preset and an estimated hourly video data figure for each target bitrate.
-          - Starts a new persistent signing identity. Back up existing settings before uninstalling a previous debug version. Future updates require the same certificate.
+          - Adds an optional 5 Mbps target video bitrate limit for each paired console. Lower selected rates remain in effect. The setup preview shows the resulting bitrate and estimated video data usage.
+          - Uses the persistent signing certificate introduced in v0.1.10.
           NOTES
-          gh release create v0.1.10 PS-PlayAnywhere-0.1.10-debug.apk PS-PlayAnywhere-0.1.10-SHA256.txt \
+          gh release create v0.1.11 PS-PlayAnywhere-0.1.11-debug.apk PS-PlayAnywhere-0.1.11-SHA256.txt \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "PS PlayAnywhere 0.1.10 (Android debug)" --notes-file release-notes.md --latest
+            --title "PS PlayAnywhere 0.1.11 (Android debug)" --notes-file release-notes.md --latest
