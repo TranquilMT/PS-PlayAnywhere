@@ -18,7 +18,7 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 | 4 | Remote NAT traversal | NOT STARTED | Two external network tests |
 | 5 | Video and latency | NOT STARTED | Sustained native 60 FPS measurement |
 | 6 | Audio and input | NOT STARTED | Controller and audio tests |
-| 7 | 30→60 interpolation | NOT STARTED | Latency/artifact benchmark |
+| 7 | 30→60 interpolation | EXPERIMENTAL | Android build and device benchmarks |
 | 8 | UI and accessibility | NOT STARTED | Onboarding acceptance |
 | 9 | Reliability and security | NOT STARTED | Security and soak test |
 | 10 | Build, signing and releases | NOT STARTED | Signed APK, source, checksum |
@@ -115,7 +115,7 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 ## Display only and 30 → 60 FPS
 
 - The in-stream Display only switch hides the touch overlays, releases held phone controls and suppresses phone controller updates while video and audio continue. Direct DualSense play on the PS5 requires a physical test with a separate Remote Play account.
-- The current Android MediaCodec path presents directly to SurfaceView. The roadmap now specifies a GPU-readable path and motion-interpolated midpoint frames for the experimental 30 → 60 FPS target. Frame synthesis is pending.
+- The in-stream 30 → 60 frame generation switch enables an experimental OpenGL ES renderer. It estimates motion between consecutive decoded frames and renders a midpoint for roughly 30 FPS input. The switch defaults to off and the direct video path remains available. Display cadence, added latency, motion artifacts and thermal cost need device testing.
 
 ## Next actions (strict order)
 1. Complete local PS5 registration using the PSN Account ID and console pairing code.

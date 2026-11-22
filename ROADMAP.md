@@ -75,13 +75,13 @@ The Phase 0 build artifact is an upstream Chiaki debug reference used to verify 
 
 ## 7. Experimental 30 → 60 FPS display interpolation
 - [ ] Establish baseline 30 FPS input and latency measurements
-- [ ] Route decoded frames to a GPU-readable SurfaceTexture while retaining the direct SurfaceView path
-- [ ] Estimate motion between adjacent frames and synthesize one midpoint frame per pair on the phone
+- [x] Route decoded frames to a GPU-readable SurfaceTexture while retaining the direct SurfaceView path
+- [x] Estimate motion between adjacent frames and synthesize one midpoint frame per pair on the phone
 - [ ] Pace real and generated frames at 16.7 ms intervals for a steady 30 FPS source and verify each generated frame is distinct
 - [ ] Compare GPU Vulkan/OpenGL ES implementations
 - [ ] Test UI/HUD ghosting, camera pans and fast motion
 - [ ] Record extra frame latency, battery use and thermal cost
-- [ ] Add off/on toggle, default off, and automatic fallback
+- [x] Add off/on toggle, default off, and automatic fallback
 **Exit:** Objective benefit without unacceptable input delay; otherwise retain as experimental.
 
 ## 8. Product UI and accessibility

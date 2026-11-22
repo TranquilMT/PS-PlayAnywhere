@@ -11,7 +11,7 @@ index 822fe76..cfc0bfa 100644
 +				controllerStateUpdated()
  				return true
 diff --git a/android/app/src/main/java/com/metallic/chiaki/session/StreamSession.kt b/android/app/src/main/java/com/metallic/chiaki/session/StreamSession.kt
-index dd32a40..40dd4e5 100644
+index dd32a40..68f141e 100644
 --- a/android/app/src/main/java/com/metallic/chiaki/session/StreamSession.kt
 +++ b/android/app/src/main/java/com/metallic/chiaki/session/StreamSession.kt
 @@ -33,2 +33,9 @@ class StreamSession(val connectInfo: ConnectInfo, val logManager: LogManager, va
@@ -29,20 +29,325 @@ index dd32a40..40dd4e5 100644
 -			session?.setControllerState(it)
 +			if (!displayOnly) session?.setControllerState(it)
  		}
+@@ -95,2 +102,7 @@ class StreamSession(val connectInfo: ConnectInfo, val logManager: LogManager, va
+ 
++	fun setVideoSurface(output: Surface?) {
++		surface = output
++		session?.setSurface(output)
++	}
++
+ 	fun attachToSurfaceView(surfaceView: SurfaceView)
+diff --git a/android/app/src/main/java/com/metallic/chiaki/stream/InterpolationView.kt b/android/app/src/main/java/com/metallic/chiaki/stream/InterpolationView.kt
+new file mode 100644
+index 0000000..9df5e51
+--- /dev/null
++++ b/android/app/src/main/java/com/metallic/chiaki/stream/InterpolationView.kt
+@@ -0,0 +1,287 @@
++// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
++package com.metallic.chiaki.stream
++
++import android.content.Context
++import android.graphics.SurfaceTexture
++import android.opengl.GLES11Ext.GL_TEXTURE_EXTERNAL_OES
++import android.opengl.GLES20.*
++import android.opengl.GLSurfaceView
++import android.view.Surface
++import java.nio.ByteBuffer
++import java.nio.ByteOrder
++import java.util.concurrent.atomic.AtomicBoolean
++import javax.microedition.khronos.egl.EGLConfig
++import javax.microedition.khronos.opengles.GL10
++
++internal class InterpolationView(
++    context: Context,
++    private val videoWidth: Int,
++    private val videoHeight: Int,
++    onSurface: (Surface) -> Unit,
++    onFailure: () -> Unit
++) : GLSurfaceView(context) {
++    private val engine = Engine(onSurface, onFailure)
++
++    init {
++        setEGLContextClientVersion(2)
++        setRenderer(engine)
++    }
++
++    override fun onPause() {
++        queueEvent { engine.release() }
++        super.onPause()
++    }
++
++    private inner class Engine(
++        private val onSurface: (Surface) -> Unit,
++        private val onFailure: () -> Unit
++    ) : GLSurfaceView.Renderer {
++        private val pending = AtomicBoolean()
++        private val quad = ByteBuffer.allocateDirect(32).order(ByteOrder.nativeOrder())
++            .asFloatBuffer().put(floatArrayOf(-1f, -1f, 1f, -1f, -1f, 1f, 1f, 1f)).apply { position(0) }
++        private val textures = IntArray(4)
++        private val fbo = IntArray(1)
++        private val transform = FloatArray(16)
++        private val motionWidth = maxOf(1, videoWidth / 16)
++        private val motionHeight = maxOf(1, videoHeight / 16)
++        private var camera: SurfaceTexture? = null
++        private var input: Surface? = null
++        private var copy = 0
++        private var estimate = 0
++        private var present = 0
++        private var width = 0
++        private var height = 0
++        private var last = 0L
++        private var arrival = 0L
++        private var interval = 0L
++        private var newest = 0
++        private var interpolate = false
++
++        override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
++            try {
++                copy = program(COPY)
++                estimate = program(ESTIMATE)
++                present = program(PRESENT)
++                glGenTextures(4, textures, 0)
++                configureTexture(GL_TEXTURE_EXTERNAL_OES, textures[3])
++                for (i in 0..2) {
++                    configureTexture(GL_TEXTURE_2D, textures[i])
++                    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA,
++                        if (i == 2) motionWidth else videoWidth, if (i == 2) motionHeight else videoHeight,
++                        0, GL_RGBA, GL_UNSIGNED_BYTE, null)
++                }
++                glGenFramebuffers(1, fbo, 0)
++                for (i in 0..2) target(textures[i], 1, 1)
++                glBindFramebuffer(GL_FRAMEBUFFER, 0)
++                check(glGetError() == GL_NO_ERROR)
++                val texture = SurfaceTexture(textures[3]).apply {
++                    setDefaultBufferSize(videoWidth, videoHeight)
++                    setOnFrameAvailableListener { pending.set(true) }
++                }
++                camera = texture
++                val surface = Surface(texture)
++                input = surface
++                post { if (surface.isValid) onSurface(surface) }
++            } catch (_: RuntimeException) {
++                release()
++                post { onFailure() }
++            }
++        }
++
++        override fun onSurfaceChanged(gl: GL10?, w: Int, h: Int) {
++            width = w
++            height = h
++        }
++
++        override fun onDrawFrame(gl: GL10?) {
++            val texture = camera ?: return
++            try {
++                if (pending.getAndSet(false)) {
++                    texture.updateTexImage()
++                    val timestamp = texture.timestamp
++                    if (timestamp != last) {
++                        arrival = System.nanoTime()
++                        interval = timestamp - last
++                        interpolate = last != 0L && interval in 26_000_000L..43_000_000L
++                        last = timestamp
++                        newest = 1 - newest
++                        texture.getTransformMatrix(transform)
++                        target(textures[newest], videoWidth, videoHeight)
++                        glUseProgram(copy)
++                        sampler(copy, "frame", 0, GL_TEXTURE_EXTERNAL_OES, textures[3])
++                        glUniformMatrix4fv(glGetUniformLocation(copy, "transform"), 1, false, transform, 0)
++                        draw(copy)
++                        if (interpolate) {
++                            target(textures[2], motionWidth, motionHeight)
++                            glUseProgram(estimate)
++                            frameSamplers(estimate)
++                            glUniform2f(glGetUniformLocation(estimate, "pixel"), 1f / videoWidth, 1f / videoHeight)
++                            draw(estimate)
++                        }
++                    }
++                }
++                glBindFramebuffer(GL_FRAMEBUFFER, 0)
++                glViewport(0, 0, width, height)
++                if (last == 0L) {
++                    glClear(GL_COLOR_BUFFER_BIT)
++                    return
++                }
++                glUseProgram(present)
++                frameSamplers(present)
++                sampler(present, "motion", 2, GL_TEXTURE_2D, textures[2])
++                glUniform2f(glGetUniformLocation(present, "pixel"), 1f / videoWidth, 1f / videoHeight)
++                val elapsed = System.nanoTime() - arrival
++                val phase = when {
++                    !interpolate || elapsed >= interval -> 1f
++                    elapsed >= interval * 45 / 100 -> 0.5f
++                    else -> 0f
++                }
++                glUniform1f(glGetUniformLocation(present, "phase"), phase)
++                draw(present)
++            } catch (_: RuntimeException) {
++                // The activity stops the decoder before releasing its input surface.
++                camera?.setOnFrameAvailableListener(null)
++                post { onFailure() }
++            }
++        }
++
++        private fun frameSamplers(p: Int) {
++            sampler(p, "beforeFrame", 0, GL_TEXTURE_2D, textures[1 - newest])
++            sampler(p, "afterFrame", 1, GL_TEXTURE_2D, textures[newest])
++        }
++
++        fun release() {
++            input?.release()
++            input = null
++            camera?.release()
++            camera = null
++            pending.set(false)
++            last = 0L
++            glDeleteTextures(4, textures, 0)
++            glDeleteFramebuffers(1, fbo, 0)
++            for (p in intArrayOf(copy, estimate, present)) if (p != 0) glDeleteProgram(p)
++            copy = 0
++            estimate = 0
++            present = 0
++        }
++
++        private fun configureTexture(target: Int, id: Int) {
++            glBindTexture(target, id)
++            glTexParameteri(target, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
++            glTexParameteri(target, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
++            glTexParameteri(target, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
++            glTexParameteri(target, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
++        }
++
++        private fun target(id: Int, w: Int, h: Int) {
++            glBindFramebuffer(GL_FRAMEBUFFER, fbo[0])
++            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, id, 0)
++            check(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE)
++            glViewport(0, 0, w, h)
++        }
++
++        private fun sampler(p: Int, name: String, unit: Int, type: Int, id: Int) {
++            glActiveTexture(GL_TEXTURE0 + unit)
++            glBindTexture(type, id)
++            glUniform1i(glGetUniformLocation(p, name), unit)
++        }
++
++        private fun draw(p: Int) {
++            val attribute = glGetAttribLocation(p, "position")
++            glEnableVertexAttribArray(attribute)
++            glVertexAttribPointer(attribute, 2, GL_FLOAT, false, 0, quad)
++            glDrawArrays(GL_TRIANGLE_STRIP, 0, 4)
++            glDisableVertexAttribArray(attribute)
++        }
++
++        private fun program(fragment: String): Int {
++            val vertex = shader(GL_VERTEX_SHADER, VERTEX)
++            val frag = shader(GL_FRAGMENT_SHADER, fragment)
++            val p = glCreateProgram()
++            glAttachShader(p, vertex)
++            glAttachShader(p, frag)
++            glLinkProgram(p)
++            glDeleteShader(vertex)
++            glDeleteShader(frag)
++            val status = IntArray(1)
++            glGetProgramiv(p, GL_LINK_STATUS, status, 0)
++            check(status[0] == GL_TRUE)
++            return p
++        }
++
++        private fun shader(type: Int, source: String): Int {
++            val s = glCreateShader(type)
++            glShaderSource(s, source)
++            glCompileShader(s)
++            val status = IntArray(1)
++            glGetShaderiv(s, GL_COMPILE_STATUS, status, 0)
++            check(status[0] == GL_TRUE)
++            return s
++        }
++    }
++
++    private companion object {
++        const val VERTEX = """
++            attribute vec2 position;
++            varying highp vec2 uv;
++            void main() {
++                uv = position * 0.5 + 0.5;
++                gl_Position = vec4(position, 0.0, 1.0);
++            }
++        """
++        const val COPY = """#extension GL_OES_EGL_image_external : require
++            precision mediump float;
++            varying highp vec2 uv;
++            uniform samplerExternalOES frame;
++            uniform mat4 transform;
++            void main() { gl_FragColor = texture2D(frame, (transform * vec4(uv, 0.0, 1.0)).xy); }
++        """
++        const val ESTIMATE = """
++            precision highp float;
++            varying highp vec2 uv;
++            uniform sampler2D beforeFrame, afterFrame;
++            uniform vec2 pixel;
++            float diff(vec2 p, vec2 d) {
++                vec3 a = texture2D(beforeFrame, p - d * 0.5).rgb;
++                vec3 b = texture2D(afterFrame, p + d * 0.5).rgb;
++                return dot(abs(a - b), vec3(0.299, 0.587, 0.114));
++            }
++            void main() {
++                vec2 best = vec2(0.0);
++                float score = 10.0;
++                vec2 s = pixel * 5.0;
++                for (int y = -2; y <= 2; y++) {
++                    for (int x = -2; x <= 2; x++) {
++                        vec2 d = vec2(float(x), float(y));
++                        vec2 v = d * pixel * 6.0;
++                        float e = (diff(uv, v) + diff(uv + vec2(s.x, 0.0), v) +
++                            diff(uv - vec2(s.x, 0.0), v) + diff(uv + vec2(0.0, s.y), v) +
++                            diff(uv - vec2(0.0, s.y), v)) * 0.2 + 0.002 * length(d);
++                        if (e < score) { score = e; best = d; }
++                    }
++                }
++                gl_FragColor = vec4(best * 0.25 + 0.5, 1.0 - smoothstep(0.04, 0.14, score), 1.0);
++            }
++        """
++        const val PRESENT = """
++            precision highp float;
++            varying highp vec2 uv;
++            uniform sampler2D beforeFrame, afterFrame, motion;
++            uniform vec2 pixel;
++            uniform float phase;
++            void main() {
++                if (phase < 0.25) {
++                    gl_FragColor = texture2D(beforeFrame, uv);
++                } else if (phase > 0.75) {
++                    gl_FragColor = texture2D(afterFrame, uv);
++                } else {
++                    vec3 field = texture2D(motion, uv).rgb;
++                    vec2 halfShift = (field.xy - 0.5) * 12.0 * pixel;
++                    vec4 a = texture2D(beforeFrame, uv - halfShift);
++                    vec4 b = texture2D(afterFrame, uv + halfShift);
++                    gl_FragColor = mix(texture2D(afterFrame, uv), (a + b) * 0.5, field.z);
++                }
++            }
++        """
++    }
++}
 diff --git a/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt b/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt
-index c15e57c..d574f73 100644
+index c15e57c..e4928c6 100644
 --- a/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt
 +++ b/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt
-@@ -27,2 +27,3 @@ import com.metallic.chiaki.common.ext.viewModelFactory
+@@ -7,2 +7,3 @@ import android.animation.AnimatorListenerAdapter
+ import android.app.AlertDialog
++import android.content.Intent
+ import android.graphics.Matrix
+@@ -27,2 +28,3 @@ import com.metallic.chiaki.common.ext.viewModelFactory
  import com.metallic.chiaki.databinding.ActivityStreamBinding
 +import com.metallic.chiaki.lib.ControllerState
  import com.metallic.chiaki.lib.ConnectInfo
-@@ -33,3 +34,3 @@ import com.metallic.chiaki.touchcontrols.TouchControlsFragment
+@@ -33,3 +35,3 @@ import com.metallic.chiaki.touchcontrols.TouchControlsFragment
  import com.metallic.chiaki.touchcontrols.TouchpadOnlyFragment
 -import kotlinx.coroutines.Job
 +import kotlinx.coroutines.flow.combine
  import kotlinx.coroutines.flow.launchIn
-@@ -77,2 +78,15 @@ class StreamActivity : AppCompatActivity()
+@@ -77,2 +79,15 @@ class StreamActivity : AppCompatActivity()
  
 +		val fullControls = supportFragmentManager.findFragmentById(R.id.controlsFragment) as DefaultTouchControlsFragment
 +		val touchpad = supportFragmentManager.findFragmentById(R.id.touchpadOnlyFragment) as TouchpadOnlyFragment
@@ -58,7 +363,7 @@ index c15e57c..d574f73 100644
 +		}.onEach { viewModel.input.touchControllerState = it }.launchIn(lifecycleScope)
 +
  		WindowCompat.setDecorFitsSystemWindows(window, false)
-@@ -112,2 +126,13 @@ class StreamActivity : AppCompatActivity()
+@@ -112,2 +127,13 @@ class StreamActivity : AppCompatActivity()
  
 +		viewModel.displayOnly.observe(this) { enabled ->
 +			if (binding.displayOnlySwitch.isChecked != enabled)
@@ -72,12 +377,39 @@ index c15e57c..d574f73 100644
 +		}
 +
  		binding.displayModeToggle.addOnButtonCheckedListener { _, _, _ ->
-@@ -138,4 +163,2 @@ class StreamActivity : AppCompatActivity()
+@@ -117,4 +143,24 @@ class StreamActivity : AppCompatActivity()
+ 
+-		//viewModel.session.attachToTextureView(textureView)
+-		viewModel.session.attachToSurfaceView(binding.surfaceView)
++		val frameGeneration = intent.getBooleanExtra("frame_generation", false)
++		binding.frameGenerationSwitch.isChecked = frameGeneration
++		binding.frameGenerationSwitch.setOnCheckedChangeListener { _, enabled ->
++			restartVideoMode(enabled)
++		}
++		if (frameGeneration) {
++			val profile = viewModel.session.connectInfo.videoProfile
++			binding.surfaceView.isGone = true
++			val video = InterpolationView(this, profile.width, profile.height, { surface ->
++				if (!isFinishing && !isDestroyed)
++					viewModel.session.setVideoSurface(surface)
++			}, {
++				if (!isFinishing && !isDestroyed && intent.getBooleanExtra("frame_generation", false)) {
++					android.widget.Toast.makeText(this, R.string.stream_frame_generation_unavailable, android.widget.Toast.LENGTH_LONG).show()
++					restartVideoMode(false)
++				}
++			})
++			interpolationView = video
++			binding.aspectRatioLayout.addView(video, android.widget.FrameLayout.LayoutParams(-1, -1))
++		} else {
++			viewModel.session.attachToSurfaceView(binding.surfaceView)
++		}
+ 		viewModel.session.state.observe(this, Observer { this.stateChanged(it) })
+@@ -138,4 +184,2 @@ class StreamActivity : AppCompatActivity()
  
 -	private var controlsJob: Job? = null
 -
  	override fun onAttachFragment(fragment: Fragment)
-@@ -145,9 +168,5 @@ class StreamActivity : AppCompatActivity()
+@@ -145,9 +189,5 @@ class StreamActivity : AppCompatActivity()
  		{
 -			controlsJob?.cancel()
 -			controlsJob = fragment.controllerState
@@ -89,11 +421,32 @@ index c15e57c..d574f73 100644
 -				fragment.touchpadOnlyEnabled = viewModel.touchpadOnlyEnabled
 +				fragment.touchpadOnlyEnabled = viewModel.showTouchpadOnly
  		}
-@@ -171,3 +190,2 @@ class StreamActivity : AppCompatActivity()
+@@ -155,2 +195,9 @@ class StreamActivity : AppCompatActivity()
+ 
++	private fun restartVideoMode(enabled: Boolean) {
++		startActivity(Intent(intent).putExtra("frame_generation", enabled))
++		finish()
++	}
++
++	private var interpolationView: InterpolationView? = null
++
+ 	override fun onResume()
+@@ -159,2 +206,3 @@ class StreamActivity : AppCompatActivity()
+ 		hideSystemUI()
++		interpolationView?.onResume()
+ 		viewModel.session.resume()
+@@ -166,2 +214,6 @@ class StreamActivity : AppCompatActivity()
+ 		viewModel.session.pause()
++		if (interpolationView != null) {
++			viewModel.session.setVideoSurface(null)
++			interpolationView?.onPause()
++		}
+ 	}
+@@ -171,3 +223,2 @@ class StreamActivity : AppCompatActivity()
  		super.onDestroy()
 -		controlsJob?.cancel()
  	}
-@@ -347,3 +365,3 @@ class StreamActivity : AppCompatActivity()
+@@ -347,3 +398,3 @@ class StreamActivity : AppCompatActivity()
  	override fun dispatchKeyEvent(event: KeyEvent) = viewModel.input.dispatchKeyEvent(event) || super.dispatchKeyEvent(event)
 -	override fun onGenericMotionEvent(event: MotionEvent) = viewModel.input.onGenericMotionEvent(event) || super.onGenericMotionEvent(event)
 +	override fun dispatchGenericMotionEvent(event: MotionEvent) = viewModel.input.onGenericMotionEvent(event) || super.dispatchGenericMotionEvent(event)
@@ -123,11 +476,24 @@ index df69378..dc6d744 100644
 +
  	override fun onCleared()
 diff --git a/android/app/src/main/res/layout/activity_stream.xml b/android/app/src/main/res/layout/activity_stream.xml
-index 77a3165..d7e69c2 100644
+index 77a3165..8bd6f1f 100644
 --- a/android/app/src/main/res/layout/activity_stream.xml
 +++ b/android/app/src/main/res/layout/activity_stream.xml
-@@ -55,2 +55,14 @@
+@@ -55,2 +55,27 @@
  
++            <com.google.android.material.switchmaterial.SwitchMaterial
++                android:id="@+id/frameGenerationSwitch"
++                android:layout_width="wrap_content"
++                android:layout_height="wrap_content"
++                android:layout_marginStart="8dp"
++                android:saveEnabled="false"
++                android:text="@string/stream_frame_generation"
++                android:textColor="@color/stream_text"
++                app:layout_constraintTop_toTopOf="parent"
++                app:layout_constraintBottom_toTopOf="@id/displayOnlySwitch"
++                app:layout_constraintStart_toStartOf="parent"
++                app:switchPadding="8dp" />
++
 +            <com.google.android.material.switchmaterial.SwitchMaterial
 +                android:id="@+id/displayOnlySwitch"
 +                android:layout_width="wrap_content"
@@ -135,7 +501,7 @@ index 77a3165..d7e69c2 100644
 +                android:layout_marginStart="8dp"
 +                android:text="@string/stream_display_only"
 +                android:textColor="@color/stream_text"
-+                app:layout_constraintTop_toTopOf="parent"
++                app:layout_constraintTop_toBottomOf="@id/frameGenerationSwitch"
 +                app:layout_constraintBottom_toTopOf="@id/onScreenControlsSwitch"
 +                app:layout_constraintStart_toStartOf="parent"
 +                app:switchPadding="8dp" />
@@ -143,10 +509,12 @@ index 77a3165..d7e69c2 100644
              <com.google.android.material.switchmaterial.SwitchMaterial
 diff --git a/android/app/src/main/res/values/strings_display_only.xml b/android/app/src/main/res/values/strings_display_only.xml
 new file mode 100644
-index 0000000..070ddee
+index 0000000..04b739d
 --- /dev/null
 +++ b/android/app/src/main/res/values/strings_display_only.xml
-@@ -0,0 +1,3 @@
+@@ -0,0 +1,5 @@
 +<resources>
 +    <string name="stream_display_only">Display only</string>
++    <string name="stream_frame_generation">30 → 60 frame generation (beta)</string>
++    <string name="stream_frame_generation_unavailable">Frame generation could not start. Returning to standard video.</string>
 +</resources>
