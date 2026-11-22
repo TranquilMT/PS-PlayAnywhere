@@ -130,3 +130,7 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 2. Verify local streaming in Phase 2.
 
 Do not mark a phase complete based solely on plans, source presence or an unexecuted CI workflow.
+
+## Version 0.1.7
+
+Fresh launches show a five-second branded loading screen. Frame generation requests 30 FPS, renders on display callbacks and presents each midpoint before its real frame. A phone test is still required to measure jitter and latency.

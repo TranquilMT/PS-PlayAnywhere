@@ -1,12 +1,20 @@
 diff --git a/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt b/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
-index 6465527..ebb907d 100644
+index 6465527..ba6822b 100644
 --- a/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
 +++ b/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
 @@ -21,2 +21,3 @@ import com.metallic.chiaki.common.ext.viewModelFactory
  import com.metallic.chiaki.databinding.ActivityMainBinding
 +import com.metallic.chiaki.databinding.DialogStreamSetupBinding
  import com.metallic.chiaki.lib.ConnectInfo
-@@ -183,6 +184,15 @@ class MainActivity : AppCompatActivity()
+@@ -40,2 +41,7 @@ class MainActivity : AppCompatActivity()
+ 		setContentView(binding.root)
++		if (savedInstanceState == null) {
++			val intro = layoutInflater.inflate(R.layout.playanywhere_intro, null)
++			addContentView(intro, android.view.ViewGroup.LayoutParams(-1, -1))
++			intro.postDelayed({ (intro.parent as? android.view.ViewGroup)?.removeView(intro) }, 5000L)
++		}
+ 
+@@ -183,6 +189,15 @@ class MainActivity : AppCompatActivity()
  				val connectInfo = ConnectInfo(host.isPS5, host.host, registeredHost.rpRegistKey, registeredHost.rpKey, Preferences(this).videoProfile)
 -				Intent(this, StreamActivity::class.java).let {
 -					it.putExtra(StreamActivity.EXTRA_CONNECT_INFO, connectInfo)
@@ -67,10 +75,10 @@ index dd32a40..68f141e 100644
  	fun attachToSurfaceView(surfaceView: SurfaceView)
 diff --git a/android/app/src/main/java/com/metallic/chiaki/stream/InterpolationView.kt b/android/app/src/main/java/com/metallic/chiaki/stream/InterpolationView.kt
 new file mode 100644
-index 0000000..3e2326f
+index 0000000..bd33cc4
 --- /dev/null
 +++ b/android/app/src/main/java/com/metallic/chiaki/stream/InterpolationView.kt
-@@ -0,0 +1,289 @@
+@@ -0,0 +1,319 @@
 +// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 +package com.metallic.chiaki.stream
 +
@@ -95,12 +103,29 @@ index 0000000..3e2326f
 +) : GLSurfaceView(context) {
 +    private val engine = Engine(onSurface, onFailure)
 +
++    private val clock = android.view.Choreographer.getInstance()
++    private val tick = object : android.view.Choreographer.FrameCallback {
++        override fun doFrame(frameTimeNanos: Long) {
++            engine.displayTime.set(frameTimeNanos)
++            requestRender()
++            clock.postFrameCallback(this)
++        }
++    }
++
++    override fun onResume() {
++        super.onResume()
++        clock.removeFrameCallback(tick)
++        clock.postFrameCallback(tick)
++    }
++
 +    init {
 +        setEGLContextClientVersion(2)
 +        setRenderer(engine)
++        renderMode = RENDERMODE_WHEN_DIRTY
 +    }
 +
 +    override fun onPause() {
++        clock.removeFrameCallback(tick)
 +        queueEvent { engine.release() }
 +        super.onPause()
 +    }
@@ -126,7 +151,12 @@ index 0000000..3e2326f
 +        private var height = 0
 +        private var last = Long.MIN_VALUE
 +        private var arrival = 0L
-+        private var interval = 0L
++        val displayTime = AtomicLong()
++        private var midpointAt = Long.MIN_VALUE
++        private var showingMidpoint = false
++        private val locations = HashMap<Pair<Int, String>, Int>()
++        private fun uniform(program: Int, name: String): Int =
++            locations.getOrPut(program to name) { glGetUniformLocation(program, name) }
 +        private var newest = 0
 +        private var interpolate = false
 +
@@ -144,7 +174,10 @@ index 0000000..3e2326f
 +                        0, GL_RGBA, GL_UNSIGNED_BYTE, null)
 +                }
 +                glGenFramebuffers(1, fbo, 0)
-+                for (i in 0..2) target(textures[i], 1, 1)
++                for (i in 0..2) {
++                    target(textures[i], 1, 1)
++                    check(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE)
++                }
 +                glBindFramebuffer(GL_FRAMEBUFFER, 0)
 +                check(glGetError() == GL_NO_ERROR)
 +                val texture = SurfaceTexture(textures[3]).apply {
@@ -169,28 +202,32 @@ index 0000000..3e2326f
 +        override fun onDrawFrame(gl: GL10?) {
 +            val texture = camera ?: return
 +            try {
-+                val frameArrival = pendingArrival.getAndSet(0L)
++                val now = displayTime.get()
++                // Finish the current pair before consuming another decoder image.
++                var accepted = false
++                val frameArrival = if (showingMidpoint) 0L else pendingArrival.getAndSet(0L)
 +                if (frameArrival != 0L) {
 +                    texture.updateTexImage()
 +                    val timestamp = texture.timestamp
 +                    if (timestamp != last) {
++                        accepted = true
 +                        // The decoder uses sequence-based presentation timestamps.
-+                        interval = frameArrival - arrival
++                        val interval = frameArrival - arrival
 +                        arrival = frameArrival
-+                        interpolate = last != Long.MIN_VALUE && interval in 26_000_000L..43_000_000L
++                        interpolate = last != Long.MIN_VALUE && interval in 1L..55_000_000L && now - frameArrival < 40_000_000L
 +                        last = timestamp
 +                        newest = 1 - newest
 +                        texture.getTransformMatrix(transform)
 +                        target(textures[newest], videoWidth, videoHeight)
 +                        glUseProgram(copy)
 +                        sampler(copy, "frame", 0, GL_TEXTURE_EXTERNAL_OES, textures[3])
-+                        glUniformMatrix4fv(glGetUniformLocation(copy, "transform"), 1, false, transform, 0)
++                        glUniformMatrix4fv(uniform(copy, "transform"), 1, false, transform, 0)
 +                        draw(copy)
 +                        if (interpolate) {
 +                            target(textures[2], motionWidth, motionHeight)
 +                            glUseProgram(estimate)
 +                            frameSamplers(estimate)
-+                            glUniform2f(glGetUniformLocation(estimate, "pixel"), 1f / videoWidth, 1f / videoHeight)
++                            glUniform2f(uniform(estimate, "pixel"), 1f / videoWidth, 1f / videoHeight)
 +                            draw(estimate)
 +                        }
 +                    }
@@ -204,14 +241,14 @@ index 0000000..3e2326f
 +                glUseProgram(present)
 +                frameSamplers(present)
 +                sampler(present, "motion", 2, GL_TEXTURE_2D, textures[2])
-+                glUniform2f(glGetUniformLocation(present, "pixel"), 1f / videoWidth, 1f / videoHeight)
-+                val elapsed = System.nanoTime() - arrival
-+                val phase = when {
-+                    !interpolate || elapsed >= interval -> 1f
-+                    elapsed >= interval * 45 / 100 -> 0.5f
-+                    else -> 0f
++                glUniform2f(uniform(present, "pixel"), 1f / videoWidth, 1f / videoHeight)
++                if (accepted && interpolate) {
++                    showingMidpoint = true
++                    midpointAt = now
++                } else if (showingMidpoint && now - midpointAt >= 12_000_000L) {
++                    showingMidpoint = false
 +                }
-+                glUniform1f(glGetUniformLocation(present, "phase"), phase)
++                glUniform1f(uniform(present, "phase"), if (showingMidpoint) 0.5f else 1f)
 +                draw(present)
 +            } catch (_: RuntimeException) {
 +                // The activity stops the decoder before releasing its input surface.
@@ -231,6 +268,8 @@ index 0000000..3e2326f
 +            camera?.release()
 +            camera = null
 +            pendingArrival.set(0L)
++            showingMidpoint = false
++            locations.clear()
 +            last = Long.MIN_VALUE
 +            glDeleteTextures(4, textures, 0)
 +            glDeleteFramebuffers(1, fbo, 0)
@@ -251,14 +290,13 @@ index 0000000..3e2326f
 +        private fun target(id: Int, w: Int, h: Int) {
 +            glBindFramebuffer(GL_FRAMEBUFFER, fbo[0])
 +            glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, id, 0)
-+            check(glCheckFramebufferStatus(GL_FRAMEBUFFER) == GL_FRAMEBUFFER_COMPLETE)
 +            glViewport(0, 0, w, h)
 +        }
 +
 +        private fun sampler(p: Int, name: String, unit: Int, type: Int, id: Int) {
 +            glActiveTexture(GL_TEXTURE0 + unit)
 +            glBindTexture(type, id)
-+            glUniform1i(glGetUniformLocation(p, name), unit)
++            glUniform1i(uniform(p, name), unit)
 +        }
 +
 +        private fun draw(p: Int) {
@@ -361,7 +399,7 @@ index 0000000..3e2326f
 +    }
 +}
 diff --git a/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt b/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt
-index c15e57c..26edf19 100644
+index c15e57c..d1f3687 100644
 --- a/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt
 +++ b/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt
 @@ -7,2 +7,3 @@ import android.animation.AnimatorListenerAdapter
@@ -382,15 +420,18 @@ index c15e57c..26edf19 100644
 +		const val EXTRA_FRAME_GENERATION = "frame_generation"
 +		const val EXTRA_DISPLAY_ONLY = "display_only"
  		private const val HIDE_UI_TIMEOUT_MS = 2000L
-@@ -69,3 +73,6 @@ class StreamActivity : AppCompatActivity()
+@@ -69,3 +73,9 @@ class StreamActivity : AppCompatActivity()
  		viewModel = ViewModelProvider(this, viewModelFactory {
 -			StreamViewModel(application, connectInfo)
-+			StreamViewModel(application, connectInfo).apply {
++			val profile = connectInfo.videoProfile
++			val options = if (intent.getBooleanExtra(EXTRA_FRAME_GENERATION, false))
++				connectInfo.copy(videoProfile = profile.copy(maxFPS = 30)) else connectInfo
++			StreamViewModel(application, options).apply {
 +				setDisplayOnly(savedInstanceState?.getBoolean(EXTRA_DISPLAY_ONLY)
 +					?: intent.getBooleanExtra(EXTRA_DISPLAY_ONLY, false))
 +			}
  		})[StreamViewModel::class.java]
-@@ -77,2 +84,15 @@ class StreamActivity : AppCompatActivity()
+@@ -77,2 +87,15 @@ class StreamActivity : AppCompatActivity()
  
 +		val fullControls = supportFragmentManager.findFragmentById(R.id.controlsFragment) as DefaultTouchControlsFragment
 +		val touchpad = supportFragmentManager.findFragmentById(R.id.touchpadOnlyFragment) as TouchpadOnlyFragment
@@ -406,7 +447,7 @@ index c15e57c..26edf19 100644
 +		}.onEach { viewModel.input.touchControllerState = it }.launchIn(lifecycleScope)
 +
  		WindowCompat.setDecorFitsSystemWindows(window, false)
-@@ -112,2 +132,13 @@ class StreamActivity : AppCompatActivity()
+@@ -112,2 +135,13 @@ class StreamActivity : AppCompatActivity()
  
 +		viewModel.displayOnly.observe(this) { enabled ->
 +			if (binding.displayOnlySwitch.isChecked != enabled)
@@ -420,7 +461,7 @@ index c15e57c..26edf19 100644
 +		}
 +
  		binding.displayModeToggle.addOnButtonCheckedListener { _, _, _ ->
-@@ -117,4 +148,24 @@ class StreamActivity : AppCompatActivity()
+@@ -117,4 +151,24 @@ class StreamActivity : AppCompatActivity()
  
 -		//viewModel.session.attachToTextureView(textureView)
 -		viewModel.session.attachToSurfaceView(binding.surfaceView)
@@ -447,12 +488,12 @@ index c15e57c..26edf19 100644
 +			viewModel.session.attachToSurfaceView(binding.surfaceView)
 +		}
  		viewModel.session.state.observe(this, Observer { this.stateChanged(it) })
-@@ -138,4 +189,2 @@ class StreamActivity : AppCompatActivity()
+@@ -138,4 +192,2 @@ class StreamActivity : AppCompatActivity()
  
 -	private var controlsJob: Job? = null
 -
  	override fun onAttachFragment(fragment: Fragment)
-@@ -145,9 +194,5 @@ class StreamActivity : AppCompatActivity()
+@@ -145,9 +197,5 @@ class StreamActivity : AppCompatActivity()
  		{
 -			controlsJob?.cancel()
 -			controlsJob = fragment.controllerState
@@ -464,7 +505,7 @@ index c15e57c..26edf19 100644
 -				fragment.touchpadOnlyEnabled = viewModel.touchpadOnlyEnabled
 +				fragment.touchpadOnlyEnabled = viewModel.showTouchpadOnly
  		}
-@@ -155,2 +200,16 @@ class StreamActivity : AppCompatActivity()
+@@ -155,2 +203,16 @@ class StreamActivity : AppCompatActivity()
  
 +	private fun restartVideoMode(enabled: Boolean) {
 +		startActivity(Intent(intent)
@@ -481,22 +522,22 @@ index c15e57c..26edf19 100644
 +	private var interpolationView: InterpolationView? = null
 +
  	override fun onResume()
-@@ -159,2 +218,3 @@ class StreamActivity : AppCompatActivity()
+@@ -159,2 +221,3 @@ class StreamActivity : AppCompatActivity()
  		hideSystemUI()
 +		interpolationView?.onResume()
  		viewModel.session.resume()
-@@ -166,2 +226,6 @@ class StreamActivity : AppCompatActivity()
+@@ -166,2 +229,6 @@ class StreamActivity : AppCompatActivity()
  		viewModel.session.pause()
 +		if (interpolationView != null) {
 +			viewModel.session.setVideoSurface(null)
 +			interpolationView?.onPause()
 +		}
  	}
-@@ -171,3 +235,2 @@ class StreamActivity : AppCompatActivity()
+@@ -171,3 +238,2 @@ class StreamActivity : AppCompatActivity()
  		super.onDestroy()
 -		controlsJob?.cancel()
  	}
-@@ -347,3 +410,3 @@ class StreamActivity : AppCompatActivity()
+@@ -347,3 +413,3 @@ class StreamActivity : AppCompatActivity()
  	override fun dispatchKeyEvent(event: KeyEvent) = viewModel.input.dispatchKeyEvent(event) || super.dispatchKeyEvent(event)
 -	override fun onGenericMotionEvent(event: MotionEvent) = viewModel.input.onGenericMotionEvent(event) || super.onGenericMotionEvent(event)
 +	override fun dispatchGenericMotionEvent(event: MotionEvent) = viewModel.input.onGenericMotionEvent(event) || super.dispatchGenericMotionEvent(event)
@@ -699,6 +740,23 @@ index 7a6b3af..b86081e 100644
 +        android:layout_height="43.2dp"
 +        android:padding="7.2dp"
          android:layout_marginRight="32dp"
+diff --git a/android/app/src/main/res/layout/playanywhere_intro.xml b/android/app/src/main/res/layout/playanywhere_intro.xml
+new file mode 100644
+index 0000000..8acf4ed
+--- /dev/null
++++ b/android/app/src/main/res/layout/playanywhere_intro.xml
+@@ -0,0 +1,11 @@
++<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    android:layout_width="match_parent" android:layout_height="match_parent"
++    android:orientation="vertical" android:gravity="center" android:background="#10182A"
++    android:clickable="true" android:focusable="true">
++    <ImageView android:layout_width="140dp" android:layout_height="140dp"
++        android:src="@drawable/ic_playanywhere_splash" android:importantForAccessibility="no" />
++    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
++        android:text="@string/app_name" android:textSize="26sp" android:textColor="#FFFFFF" />
++    <ProgressBar android:layout_width="24dp" android:layout_height="24dp"
++        android:layout_marginTop="24dp" android:indeterminateTint="#71F4DF" />
++</LinearLayout>
 diff --git a/android/app/src/main/res/values/dimens.xml b/android/app/src/main/res/values/dimens.xml
 index 9ee2e9b..c6b696d 100644
 --- a/android/app/src/main/res/values/dimens.xml
