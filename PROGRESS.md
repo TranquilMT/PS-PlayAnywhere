@@ -35,7 +35,7 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 
 ## Phase 1 Android integration
 
-- Added **Settings → Connection help** from the uploaded Remote Play guide. The app now gives pairing, rest-mode and off-network troubleshooting guidance and classifies an optional router WAN IPv4 locally. Boundary tests cover shared, private, special-use and malformed addresses. The feature does not change the native streaming or PSN paths.
+- Added **Settings → Connection help** from the uploaded Remote Play guide. The app gives pairing, rest-mode and off-network troubleshooting guidance and classifies an optional router WAN IPv4 locally. All 19 unit tests passed locally, including the new address boundary cases. The [clean CI build and test run](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45010228669) passed. The downloaded APK matched its recorded SHA-256 `9db912e9ddc877fb1e9cc1ad4b23296539c6945d8d89932366ffd2ce7169dc24`. All 12 packaged native libraries matched the prior integration build byte for byte.
 
 - Verified a fresh recursive checkout of `engine/chiaki` at the audited commit with the eight matching nested gitlinks and both upstream license files.
 - Applied the PS PlayAnywhere identity patch. Gradle built version `0.1.0` (version code `1`) as `com.tranquil.ps5remoteplay`. APK inspection verified the label, launcher icon and matching FileProvider authority. The existing Kotlin/JNI namespace is preserved.

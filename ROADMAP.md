@@ -25,6 +25,7 @@ The Phase 0 build artifact is an upstream Chiaki debug reference used to verify 
 - [x] Set application label and launcher icon
 - [x] Compile ARM64-v8a debug APK
 - [x] Verify 16 KB ZIP and ARM64 ELF segment alignment
+- [x] Add in-app connection help and offline WAN IPv4 classification
 - [ ] Verify installation and launch on physical Android 16 hardware
 **Exit:** Branded native app launches on a physical device.
 
