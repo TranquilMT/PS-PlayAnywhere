@@ -1,0 +1,58 @@
+diff --git a/android/app/src/main/java/com/metallic/chiaki/session/StreamInput.kt b/android/app/src/main/java/com/metallic/chiaki/session/StreamInput.kt
+index 822fe76..cfc0bfa 100644
+--- a/android/app/src/main/java/com/metallic/chiaki/session/StreamInput.kt
++++ b/android/app/src/main/java/com/metallic/chiaki/session/StreamInput.kt
+@@ -132,2 +132,3 @@ class StreamInput(val context: Context, val preferences: Preferences)
+ 				keyControllerState.l2State = if(event.action == KeyEvent.ACTION_DOWN) UByte.MAX_VALUE else 0U
++				controllerStateUpdated()
+ 				return true
+@@ -136,2 +137,3 @@ class StreamInput(val context: Context, val preferences: Preferences)
+ 				keyControllerState.r2State = if(event.action == KeyEvent.ACTION_DOWN) UByte.MAX_VALUE else 0U
++				controllerStateUpdated()
+ 				return true
+diff --git a/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt b/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt
+index c15e57c..2ac1962 100644
+--- a/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt
++++ b/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt
+@@ -27,2 +27,3 @@ import com.metallic.chiaki.common.ext.viewModelFactory
+ import com.metallic.chiaki.databinding.ActivityStreamBinding
++import com.metallic.chiaki.lib.ControllerState
+ import com.metallic.chiaki.lib.ConnectInfo
+@@ -33,3 +34,3 @@ import com.metallic.chiaki.touchcontrols.TouchControlsFragment
+ import com.metallic.chiaki.touchcontrols.TouchpadOnlyFragment
+-import kotlinx.coroutines.Job
++import kotlinx.coroutines.flow.combine
+ import kotlinx.coroutines.flow.launchIn
+@@ -77,2 +78,15 @@ class StreamActivity : AppCompatActivity()
+ 
++		val fullControls = supportFragmentManager.findFragmentById(R.id.controlsFragment) as DefaultTouchControlsFragment
++		val touchpad = supportFragmentManager.findFragmentById(R.id.touchpadOnlyFragment) as TouchpadOnlyFragment
++		combine(
++			fullControls.controllerState, touchpad.controllerState,
++			viewModel.onScreenControlsEnabled.asFlow(), viewModel.touchpadOnlyEnabled.asFlow()
++		) { fullState, touchpadState, fullEnabled, touchpadEnabled ->
++			when {
++				fullEnabled -> fullState
++				touchpadEnabled -> touchpadState
++				else -> ControllerState()
++			}
++		}.onEach { viewModel.input.touchControllerState = it }.launchIn(lifecycleScope)
++
+ 		WindowCompat.setDecorFitsSystemWindows(window, false)
+@@ -138,4 +152,2 @@ class StreamActivity : AppCompatActivity()
+ 
+-	private var controlsJob: Job? = null
+-
+ 	override fun onAttachFragment(fragment: Fragment)
+@@ -145,6 +157,2 @@ class StreamActivity : AppCompatActivity()
+ 		{
+-			controlsJob?.cancel()
+-			controlsJob = fragment.controllerState
+-				.onEach { viewModel.input.touchControllerState = it }
+-				.launchIn(lifecycleScope)
+ 			fragment.onScreenControlsEnabled = viewModel.onScreenControlsEnabled
+@@ -347,3 +355,3 @@ class StreamActivity : AppCompatActivity()
+ 	override fun dispatchKeyEvent(event: KeyEvent) = viewModel.input.dispatchKeyEvent(event) || super.dispatchKeyEvent(event)
+-	override fun onGenericMotionEvent(event: MotionEvent) = viewModel.input.onGenericMotionEvent(event) || super.onGenericMotionEvent(event)
++	override fun dispatchGenericMotionEvent(event: MotionEvent) = viewModel.input.onGenericMotionEvent(event) || super.dispatchGenericMotionEvent(event)
+ }

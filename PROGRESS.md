@@ -108,6 +108,10 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 
 - The user confirmed that 0.1.1 launches and reached the PS5 registration screen. Pairing is pending entry of the PSN Account ID.
 
+## Streaming controls
+
+- User reported that pairing and streaming work but controls did not respond. The app now routes input from the selected touch overlay, dispatches joystick motion at the activity boundary, and sends digital trigger changes immediately. Phone retest is pending.
+
 ## Next actions (strict order)
 1. Complete local PS5 registration using the PSN Account ID and console pairing code.
 2. Verify local streaming in Phase 2.
