@@ -72,7 +72,7 @@ The first workflow builds upstream source without modifying it. It does **not** 
 - [x] Record and independently verify the APK SHA-256 ([PROGRESS.md](../PROGRESS.md))
 - [x] Verify baseline dependency licenses against the resolved runtime graph and native dependency inventory
 - [ ] Pin the remaining dependency hashes for the release environment
-- [ ] Rebuild twice and compare reproducibility characteristics
+- [x] Rebuild twice and compare reproducibility characteristics ([run #7](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45006004955)). All APK payload entries matched. The signed debug APKs used different runner-generated certificates.
 - [ ] Sign and publish a compliant PS PlayAnywhere release
 
 ## Limitations

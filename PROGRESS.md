@@ -4,14 +4,14 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 
 ## Current state
 **Active:** Phase 0 — Baseline, licensing and reproducibility.
-**Verified:** The pinned upstream Chiaki source compiles on GitHub Actions. The archived debug APK's signature, ARM64 libraries and SHA-256 were verified independently after download.
-**Open in Phase 0:** Verify reproducibility after fixing an OpenSSL build timestamp difference. Phase 1 starts after the Phase 0 checklist is complete.
+**Verified:** The pinned upstream Chiaki source compiles locally and on GitHub Actions. Two clean CI builds produced identical contents for all 1,061 APK entries. Debug signing certificates differ across runners.
+**Open in Phase 0:** Enforce remaining dependency hashes for the release build environment. Phase 1 starts after the Phase 0 checklist is complete.
 **Release:** The signed PS PlayAnywhere APK is a Phase 10 deliverable. Device installation, console pairing, PSN and remote play have yet to be tested.
 
 ## Phase gates
 | Phase | Name | Status | Evidence / next gate |
 | --- | --- | --- | --- |
-| 0 | Baseline, licensing and reproducibility | IN PROGRESS | Two CI builds passed and the baseline license audit is recorded. Two clean builds must verify the timestamp fix. |
+| 0 | Baseline, licensing and reproducibility | IN PROGRESS | License audit and repeatable upstream APK payload verified. Release dependency hash enforcement remains open. |
 | 1 | Android source integration | NOT STARTED | Branded native APK installs |
 | 2 | Local console streaming | NOT STARTED | 15-minute gameplay test |
 | 3 | PSN login and discovery | NOT STARTED | Real-account authentication test |
@@ -33,11 +33,22 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - Upstream COPYING contains GNU AGPL v3.
 - Remote PSN setup docs state IPv4-only and warn that some NAT types cannot hole punch.
 
+## Verified CI run #7
+
+- [Run #7](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45006004955) passed on two clean runners. The reference and repeat runner compiled the same pinned upstream source with the commit timestamp passed to OpenSSL.
+- Downloaded and independently compared both upstream debug APKs. All 1,061 APK entries matched byte for byte. The per-entry SHA-256 manifests also matched. Their shared manifest SHA-256 is `8e346efd7aa4dcfb56637b89367a4b9239c69382bcffe86a5eb0d005c8bc882f`.
+- The signed debug APKs had different SHA-256 values and different debug signing certificates. Both signatures verified. The resolved dependency reports differed only in the elapsed Gradle command time.
+
 ## Verified CI run #6
 - [Run #6](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45005296420), job `137155454047`, built the same upstream revision using the checksum-verified Gradle distribution. The APK checksum `23a721f3461bf297f6dd1434a5948ce45dda79e6e3ae6b742cec5a5d59fbe152` matched after download.
 - Compared with run #5, 1,057 APK entries matched and four changed. All four changed files were `libchiaki-jni.so`, one per ABI. The ARM64 comparison showed a different OpenSSL build timestamp and ELF build ID. The two APKs also had different debug signing certificates.
 - The baseline audit matched all 89 resolved Gradle runtime coordinates to license evidence and identified the packaged native libraries. See [UPSTREAM.md](docs/UPSTREAM.md).
-- The workflow now sets `SOURCE_DATE_EPOCH` from the pinned upstream commit and schedules two independent builds. Matching APK payloads still need to be verified. Debug signing may differ across runners.
+- The workflow subsequently set `SOURCE_DATE_EPOCH` from the pinned upstream commit and scheduled the two clean builds verified in run #7.
+
+## Verified local upstream build
+
+- Downloaded and used Temurin 17.0.21+9, the checksum-verified Gradle 8.11.1 distribution, Android platform 35, NDK r28c and CMake 3.22.1. The local Gradle run used the workspace proxy and a local Protobuf compiler wrapper. The GitHub builds use the Ubuntu Protobuf packages.
+- The unmodified upstream checkout passed `:app:assembleDebug`. The output matched the expected upstream package ID, included ARM64, ARMv7, x86 and x86-64, passed APK signature v2 verification and passed the APK ZIP alignment check. SHA-256: `3857306553212d33c5b8c91c407a5046ec44855e2ad688e6e6ba2cee61063318`.
 
 ## Verified CI run #5
 - [Run #5](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45005001825), job `137154496486`, built upstream Chiaki `43728af2e639fecb8a7af1cd68c29820a40de973`.
@@ -69,7 +80,7 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - 2026-11-22: Expanded roadmap to 12 gated engineering phases and updated evidence ledger.
 
 ## Next actions (strict order)
-1. Compare the two clean builds after the timestamp fix using their ZIP-entry manifests. Record any remaining differences.
+1. Enforce the remaining dependency checksums and verify the pinned inputs in the release build environment.
 2. Complete Phase 0 before starting Android source integration in Phase 1.
 
 Do not mark a phase complete based solely on plans, source presence or an unexecuted CI workflow.
