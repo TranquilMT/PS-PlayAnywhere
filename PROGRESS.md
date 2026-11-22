@@ -38,6 +38,7 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - Verified a fresh recursive checkout of `engine/chiaki` at the audited commit with the eight matching nested gitlinks and both upstream license files.
 - Applied the PS PlayAnywhere identity patch. Gradle built version `0.1.0` (version code `1`) as `com.tranquil.ps5remoteplay`. APK inspection verified the label, launcher icon and matching FileProvider authority. The existing Kotlin/JNI namespace is preserved.
 - A clean build from the recursive checkout passed all 42 Gradle tasks with the final checksum lock. Its ARM64-only debug APK SHA-256 is `ccf54bdc6596dc5e7c89a0b73ff2e669f9d01877797fe4211c8274b456e9bd52`. The debug signature verified, and the APK passed its 16 KB ZIP alignment check. All LOAD segments in the three packaged ARM64 shared libraries reported `0x4000` alignment.
+- The [Android integration CI run](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45009457492) passed from a clean runner. The downloaded APK matched its recorded SHA-256 `3a8a709f6c82ad14fa1b232aa9bae94db320241c53c1465aa96fd4e3995fdf9e`. Its package ID, version, debug signature and 16 KB ARM64 alignment were independently verified again after download.
 - ADB listed no connected devices. The physical install and launch gate stays open.
 
 ## Phase 0 checksum verification
