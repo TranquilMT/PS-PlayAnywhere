@@ -1,0 +1,217 @@
+diff --git a/android/app/src/main/java/com/metallic/chiaki/settings/ConnectionHelpDialog.kt b/android/app/src/main/java/com/metallic/chiaki/settings/ConnectionHelpDialog.kt
+new file mode 100644
+index 0000000..a77dbc6
+--- /dev/null
++++ b/android/app/src/main/java/com/metallic/chiaki/settings/ConnectionHelpDialog.kt
+@@ -0,0 +1,33 @@
++package com.metallic.chiaki.settings
++
++import android.content.Context
++import android.view.LayoutInflater
++import androidx.core.view.isVisible
++import androidx.core.widget.doAfterTextChanged
++import com.google.android.material.dialog.MaterialAlertDialogBuilder
++import com.metallic.chiaki.R
++import com.metallic.chiaki.databinding.DialogConnectionHelpBinding
++
++internal object ConnectionHelpDialog {
++    fun show(context: Context) {
++        val builder = MaterialAlertDialogBuilder(context)
++        val binding = DialogConnectionHelpBinding.inflate(LayoutInflater.from(builder.context))
++        binding.wanAddress.doAfterTextChanged { value ->
++            binding.wanResult.isVisible = !value.isNullOrBlank()
++            if (!binding.wanResult.isVisible) return@doAfterTextChanged
++
++            val message = when (WanAddress.classify(value.toString())) {
++                WanAddress.INVALID -> R.string.connection_help_invalid
++                WanAddress.SHARED -> R.string.connection_help_shared
++                WanAddress.PRIVATE -> R.string.connection_help_private
++                WanAddress.SPECIAL_USE -> R.string.connection_help_special
++                WanAddress.POTENTIALLY_PUBLIC -> R.string.connection_help_public
++            }
++            binding.wanResult.setText(message)
++        }
++        builder.setTitle(R.string.connection_help_title)
++            .setView(binding.root)
++            .setPositiveButton(android.R.string.ok, null)
++            .show()
++    }
++}
+diff --git a/android/app/src/main/java/com/metallic/chiaki/settings/SettingsFragment.kt b/android/app/src/main/java/com/metallic/chiaki/settings/SettingsFragment.kt
+index f2aa77c..fbdffe1 100644
+--- a/android/app/src/main/java/com/metallic/chiaki/settings/SettingsFragment.kt
++++ b/android/app/src/main/java/com/metallic/chiaki/settings/SettingsFragment.kt
+@@ -95,2 +95,7 @@ class SettingsFragment: PreferenceFragmentCompat(), TitleFragment
+ 
++		preferenceScreen.findPreference<Preference>("connection_help")?.setOnPreferenceClickListener {
++			ConnectionHelpDialog.show(context)
++			true
++		}
++
+ 		preferenceScreen.findPreference<ListPreference>(getString(R.string.preferences_resolution_key))?.let {
+diff --git a/android/app/src/main/java/com/metallic/chiaki/settings/WanAddress.kt b/android/app/src/main/java/com/metallic/chiaki/settings/WanAddress.kt
+new file mode 100644
+index 0000000..d0b6b95
+--- /dev/null
++++ b/android/app/src/main/java/com/metallic/chiaki/settings/WanAddress.kt
+@@ -0,0 +1,37 @@
++package com.metallic.chiaki.settings
++
++internal enum class WanAddress {
++    INVALID,
++    SHARED,
++    PRIVATE,
++    SPECIAL_USE,
++    POTENTIALLY_PUBLIC;
++
++    companion object {
++        fun classify(input: String): WanAddress {
++            val fields = input.trim().split('.')
++            if (fields.size != 4) return INVALID
++
++            val octets = fields.map { field ->
++                if (field.isEmpty() || field.length > 3 || field.any { it !in '0'..'9' } ||
++                    (field.length > 1 && field.startsWith('0'))
++                ) return INVALID
++                field.toInt().takeIf { it <= 255 } ?: return INVALID
++            }
++
++            val (first, second, third) = octets
++            return when {
++                first == 100 && second in 64..127 -> SHARED
++                first == 10 || (first == 172 && second in 16..31) ||
++                    (first == 192 && second == 168) -> PRIVATE
++                first == 0 || first == 127 || first >= 224 ||
++                    (first == 169 && second == 254) ||
++                    (first == 192 && second == 0 && third in listOf(0, 2)) ||
++                    (first == 198 && second in 18..19) ||
++                    (first == 198 && second == 51 && third == 100) ||
++                    (first == 203 && second == 0 && third == 113) -> SPECIAL_USE
++                else -> POTENTIALLY_PUBLIC
++            }
++        }
++    }
++}
+diff --git a/android/app/src/main/res/layout/dialog_connection_help.xml b/android/app/src/main/res/layout/dialog_connection_help.xml
+new file mode 100644
+index 0000000..fa9ca70
+--- /dev/null
++++ b/android/app/src/main/res/layout/dialog_connection_help.xml
+@@ -0,0 +1,47 @@
++<?xml version="1.0" encoding="utf-8"?>
++<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
++    android:layout_width="match_parent"
++    android:layout_height="wrap_content">
++
++    <LinearLayout
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content"
++        android:focusableInTouchMode="true"
++        android:orientation="vertical"
++        android:paddingStart="24dp"
++        android:paddingTop="12dp"
++        android:paddingEnd="24dp"
++        android:paddingBottom="12dp">
++
++        <TextView
++            android:layout_width="match_parent"
++            android:layout_height="wrap_content"
++            android:text="@string/connection_help_steps"
++            android:textAppearance="?attr/textAppearanceBody2" />
++
++        <TextView
++            android:layout_width="match_parent"
++            android:layout_height="wrap_content"
++            android:layout_marginTop="16dp"
++            android:labelFor="@id/wan_address"
++            android:text="@string/connection_help_wan_label"
++            android:textAppearance="?attr/textAppearanceSubtitle2" />
++
++        <EditText
++            android:id="@+id/wan_address"
++            android:layout_width="match_parent"
++            android:layout_height="wrap_content"
++            android:importantForAutofill="no"
++            android:inputType="textNoSuggestions"
++            android:saveEnabled="false"
++            android:singleLine="true" />
++
++        <TextView
++            android:id="@+id/wan_result"
++            android:layout_width="match_parent"
++            android:layout_height="wrap_content"
++            android:accessibilityLiveRegion="polite"
++            android:textAppearance="?attr/textAppearanceBody2"
++            android:visibility="gone" />
++    </LinearLayout>
++</ScrollView>
+diff --git a/android/app/src/main/res/values/strings_connection_help.xml b/android/app/src/main/res/values/strings_connection_help.xml
+new file mode 100644
+index 0000000..21879fe
+--- /dev/null
++++ b/android/app/src/main/res/values/strings_connection_help.xml
+@@ -0,0 +1,12 @@
++<?xml version="1.0" encoding="utf-8"?>
++<resources>
++    <string name="connection_help_title">Connection help</string>
++    <string name="connection_help_summary">Troubleshoot pairing, rest mode and home network access</string>
++    <string name="connection_help_steps">Pair and test on the same network while your PS5 is awake. Check that Remote Play is enabled in the console settings.\n\nFor wake from rest mode, enable internet access and network wake in the console’s rest mode settings. A successful wake only confirms that the wake request reached the console. Test video and controls separately.\n\nFor an away-from-home test, use mobile data or a different Wi-Fi network. If direct access fails, check the WAN address shown on your home router below. This check runs on your phone and the app does not save the address.</string>
++    <string name="connection_help_wan_label">Home router WAN IPv4 (optional)</string>
++    <string name="connection_help_invalid">Enter a dotted IPv4 address with four numbers from 0 to 255.</string>
++    <string name="connection_help_shared">This address is in the shared range used by carrier-grade NAT. Forwarding a port on your home router alone cannot make the console reachable through upstream NAT.</string>
++    <string name="connection_help_private">This address is private. Check whether a modem, another router or your provider is routing traffic upstream. If you have two routers, check the internet-facing one.</string>
++    <string name="connection_help_special">This address is reserved for special use. Check the internet-facing router’s WAN status for its assigned address.</string>
++    <string name="connection_help_public">This address is outside common private and shared ranges. Reachability still depends on your network. Confirm it with a Remote Play session from another network.</string>
++</resources>
+diff --git a/android/app/src/main/res/xml/preferences.xml b/android/app/src/main/res/xml/preferences.xml
+index 49989db..ab19ea9 100644
+--- a/android/app/src/main/res/xml/preferences.xml
++++ b/android/app/src/main/res/xml/preferences.xml
+@@ -15,2 +15,7 @@
+ 
++        <Preference
++            app:key="connection_help"
++            app:title="@string/connection_help_title"
++            app:summary="@string/connection_help_summary" />
++
+         <SwitchPreference
+@@ -95,2 +100,2 @@
+     </PreferenceCategory>
+-</PreferenceScreen>
+\ No newline at end of file
++</PreferenceScreen>
+diff --git a/android/app/src/test/java/com/metallic/chiaki/settings/WanAddressTest.kt b/android/app/src/test/java/com/metallic/chiaki/settings/WanAddressTest.kt
+new file mode 100644
+index 0000000..b8861e8
+--- /dev/null
++++ b/android/app/src/test/java/com/metallic/chiaki/settings/WanAddressTest.kt
+@@ -0,0 +1,29 @@
++package com.metallic.chiaki.settings
++
++import org.junit.Assert.assertEquals
++import org.junit.Test
++
++class WanAddressTest {
++    @Test
++    fun sharedRangeIncludesBothBoundaries() {
++        assertEquals(WanAddress.SHARED, WanAddress.classify("100.64.0.0"))
++        assertEquals(WanAddress.SHARED, WanAddress.classify("100.127.255.255"))
++        assertEquals(WanAddress.POTENTIALLY_PUBLIC, WanAddress.classify("100.63.255.255"))
++        assertEquals(WanAddress.POTENTIALLY_PUBLIC, WanAddress.classify("100.128.0.0"))
++    }
++
++    @Test
++    fun privateAndSpecialUseAddresses() {
++        for (address in listOf(" 10.0.0.1 ", "172.16.0.1", "172.31.255.255", "192.168.0.1"))
++            assertEquals(address, WanAddress.PRIVATE, WanAddress.classify(address))
++        for (address in listOf("0.0.0.0", "127.0.0.1", "169.254.0.1", "192.0.2.1", "198.51.100.1", "203.0.113.1", "224.0.0.1"))
++            assertEquals(address, WanAddress.SPECIAL_USE, WanAddress.classify(address))
++        assertEquals(WanAddress.POTENTIALLY_PUBLIC, WanAddress.classify("172.32.0.1"))
++    }
++
++    @Test
++    fun malformedInputsStayInvalid() {
++        for (address in listOf("", "router.local", "192.168.1", "192.168.1.256", "192.168.1.1:80", "1.2.3.4.", "::1", "01.2.3.4", "+1.2.3.4"))
++            assertEquals(address, WanAddress.INVALID, WanAddress.classify(address))
++    }
++}

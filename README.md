@@ -17,7 +17,7 @@ Use JDK 17, Gradle 8.11.1, Android SDK 35, CMake 3.22.1, NDK r28c, `protoc` and 
 
 ```bash
 bash build-support/apply-dependency-pins.sh engine/chiaki
-git -C engine/chiaki apply "$PWD/android/patches/playanywhere-identity.patch"
+git -C engine/chiaki apply "$PWD/android/patches/playanywhere-identity.patch" "$PWD/android/patches/connection-help.patch"
 export SOURCE_DATE_EPOCH="$(git -C engine/chiaki show -s --format=%ct HEAD)"
 gradle -p engine/chiaki/android :app:assembleDebug --dependency-verification strict
 ```
@@ -25,6 +25,10 @@ gradle -p engine/chiaki/android :app:assembleDebug --dependency-verification str
 The package ID is `com.tranquil.ps5remoteplay`. The initial version is `0.1.0` with version code `1`.
 
 See [ROADMAP.md](ROADMAP.md) for the implementation and verification checklist.
+
+## Connection help
+
+Open **Settings → Connection help** for home pairing, rest-mode wake and off-network testing. The optional WAN IPv4 check identifies common upstream NAT configurations entirely on the device. See the [connection guide](docs/CONNECTION_HELP.md) for interpreting results.
 
 ## Release requirements
 Every verified release should include a signed APK, full corresponding source archive, SHA-256 checksum, version information and physical-device test results for both local and remote PS5 connections.
