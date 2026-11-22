@@ -1,3 +1,31 @@
+diff --git a/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt b/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
+index 6465527..ebb907d 100644
+--- a/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
++++ b/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
+@@ -21,2 +21,3 @@ import com.metallic.chiaki.common.ext.viewModelFactory
+ import com.metallic.chiaki.databinding.ActivityMainBinding
++import com.metallic.chiaki.databinding.DialogStreamSetupBinding
+ import com.metallic.chiaki.lib.ConnectInfo
+@@ -183,6 +184,15 @@ class MainActivity : AppCompatActivity()
+ 				val connectInfo = ConnectInfo(host.isPS5, host.host, registeredHost.rpRegistKey, registeredHost.rpKey, Preferences(this).videoProfile)
+-				Intent(this, StreamActivity::class.java).let {
+-					it.putExtra(StreamActivity.EXTRA_CONNECT_INFO, connectInfo)
+-					startActivity(it)
+-				}
++				val setup = DialogStreamSetupBinding.inflate(layoutInflater)
++				MaterialAlertDialogBuilder(this)
++					.setTitle(R.string.stream_setup_title)
++					.setView(setup.root)
++					.setNegativeButton(android.R.string.cancel, null)
++					.setPositiveButton(R.string.stream_setup_start) { _, _ ->
++						val stream = Intent(this, StreamActivity::class.java)
++							.putExtra(StreamActivity.EXTRA_CONNECT_INFO, connectInfo)
++							.putExtra(StreamActivity.EXTRA_FRAME_GENERATION, setup.frameGenerationSwitch.isChecked)
++							.putExtra(StreamActivity.EXTRA_DISPLAY_ONLY, setup.displayOnlySwitch.isChecked)
++						startActivity(stream)
++					}
++					.show()
+ 			}
 diff --git a/android/app/src/main/java/com/metallic/chiaki/session/StreamInput.kt b/android/app/src/main/java/com/metallic/chiaki/session/StreamInput.kt
 index 822fe76..cfc0bfa 100644
 --- a/android/app/src/main/java/com/metallic/chiaki/session/StreamInput.kt
@@ -333,7 +361,7 @@ index 0000000..3e2326f
 +    }
 +}
 diff --git a/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt b/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt
-index c15e57c..e4928c6 100644
+index c15e57c..26edf19 100644
 --- a/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt
 +++ b/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt
 @@ -7,2 +7,3 @@ import android.animation.AnimatorListenerAdapter
@@ -349,7 +377,20 @@ index c15e57c..e4928c6 100644
 -import kotlinx.coroutines.Job
 +import kotlinx.coroutines.flow.combine
  import kotlinx.coroutines.flow.launchIn
-@@ -77,2 +79,15 @@ class StreamActivity : AppCompatActivity()
+@@ -48,2 +50,4 @@ class StreamActivity : AppCompatActivity()
+ 		const val EXTRA_CONNECT_INFO = "connect_info"
++		const val EXTRA_FRAME_GENERATION = "frame_generation"
++		const val EXTRA_DISPLAY_ONLY = "display_only"
+ 		private const val HIDE_UI_TIMEOUT_MS = 2000L
+@@ -69,3 +73,6 @@ class StreamActivity : AppCompatActivity()
+ 		viewModel = ViewModelProvider(this, viewModelFactory {
+-			StreamViewModel(application, connectInfo)
++			StreamViewModel(application, connectInfo).apply {
++				setDisplayOnly(savedInstanceState?.getBoolean(EXTRA_DISPLAY_ONLY)
++					?: intent.getBooleanExtra(EXTRA_DISPLAY_ONLY, false))
++			}
+ 		})[StreamViewModel::class.java]
+@@ -77,2 +84,15 @@ class StreamActivity : AppCompatActivity()
  
 +		val fullControls = supportFragmentManager.findFragmentById(R.id.controlsFragment) as DefaultTouchControlsFragment
 +		val touchpad = supportFragmentManager.findFragmentById(R.id.touchpadOnlyFragment) as TouchpadOnlyFragment
@@ -365,7 +406,7 @@ index c15e57c..e4928c6 100644
 +		}.onEach { viewModel.input.touchControllerState = it }.launchIn(lifecycleScope)
 +
  		WindowCompat.setDecorFitsSystemWindows(window, false)
-@@ -112,2 +127,13 @@ class StreamActivity : AppCompatActivity()
+@@ -112,2 +132,13 @@ class StreamActivity : AppCompatActivity()
  
 +		viewModel.displayOnly.observe(this) { enabled ->
 +			if (binding.displayOnlySwitch.isChecked != enabled)
@@ -379,11 +420,11 @@ index c15e57c..e4928c6 100644
 +		}
 +
  		binding.displayModeToggle.addOnButtonCheckedListener { _, _, _ ->
-@@ -117,4 +143,24 @@ class StreamActivity : AppCompatActivity()
+@@ -117,4 +148,24 @@ class StreamActivity : AppCompatActivity()
  
 -		//viewModel.session.attachToTextureView(textureView)
 -		viewModel.session.attachToSurfaceView(binding.surfaceView)
-+		val frameGeneration = intent.getBooleanExtra("frame_generation", false)
++		val frameGeneration = intent.getBooleanExtra(EXTRA_FRAME_GENERATION, false)
 +		binding.frameGenerationSwitch.isChecked = frameGeneration
 +		binding.frameGenerationSwitch.setOnCheckedChangeListener { _, enabled ->
 +			restartVideoMode(enabled)
@@ -395,7 +436,7 @@ index c15e57c..e4928c6 100644
 +				if (!isFinishing && !isDestroyed)
 +					viewModel.session.setVideoSurface(surface)
 +			}, {
-+				if (!isFinishing && !isDestroyed && intent.getBooleanExtra("frame_generation", false)) {
++				if (!isFinishing && !isDestroyed && intent.getBooleanExtra(EXTRA_FRAME_GENERATION, false)) {
 +					android.widget.Toast.makeText(this, R.string.stream_frame_generation_unavailable, android.widget.Toast.LENGTH_LONG).show()
 +					restartVideoMode(false)
 +				}
@@ -406,12 +447,12 @@ index c15e57c..e4928c6 100644
 +			viewModel.session.attachToSurfaceView(binding.surfaceView)
 +		}
  		viewModel.session.state.observe(this, Observer { this.stateChanged(it) })
-@@ -138,4 +184,2 @@ class StreamActivity : AppCompatActivity()
+@@ -138,4 +189,2 @@ class StreamActivity : AppCompatActivity()
  
 -	private var controlsJob: Job? = null
 -
  	override fun onAttachFragment(fragment: Fragment)
-@@ -145,9 +189,5 @@ class StreamActivity : AppCompatActivity()
+@@ -145,9 +194,5 @@ class StreamActivity : AppCompatActivity()
  		{
 -			controlsJob?.cancel()
 -			controlsJob = fragment.controllerState
@@ -423,32 +464,39 @@ index c15e57c..e4928c6 100644
 -				fragment.touchpadOnlyEnabled = viewModel.touchpadOnlyEnabled
 +				fragment.touchpadOnlyEnabled = viewModel.showTouchpadOnly
  		}
-@@ -155,2 +195,9 @@ class StreamActivity : AppCompatActivity()
+@@ -155,2 +200,16 @@ class StreamActivity : AppCompatActivity()
  
 +	private fun restartVideoMode(enabled: Boolean) {
-+		startActivity(Intent(intent).putExtra("frame_generation", enabled))
++		startActivity(Intent(intent)
++			.putExtra(EXTRA_FRAME_GENERATION, enabled)
++			.putExtra(EXTRA_DISPLAY_ONLY, viewModel.displayOnly.value == true))
 +		finish()
++	}
++
++	override fun onSaveInstanceState(outState: Bundle) {
++		super.onSaveInstanceState(outState)
++		outState.putBoolean(EXTRA_DISPLAY_ONLY, viewModel.displayOnly.value == true)
 +	}
 +
 +	private var interpolationView: InterpolationView? = null
 +
  	override fun onResume()
-@@ -159,2 +206,3 @@ class StreamActivity : AppCompatActivity()
+@@ -159,2 +218,3 @@ class StreamActivity : AppCompatActivity()
  		hideSystemUI()
 +		interpolationView?.onResume()
  		viewModel.session.resume()
-@@ -166,2 +214,6 @@ class StreamActivity : AppCompatActivity()
+@@ -166,2 +226,6 @@ class StreamActivity : AppCompatActivity()
  		viewModel.session.pause()
 +		if (interpolationView != null) {
 +			viewModel.session.setVideoSurface(null)
 +			interpolationView?.onPause()
 +		}
  	}
-@@ -171,3 +223,2 @@ class StreamActivity : AppCompatActivity()
+@@ -171,3 +235,2 @@ class StreamActivity : AppCompatActivity()
  		super.onDestroy()
 -		controlsJob?.cancel()
  	}
-@@ -347,3 +398,3 @@ class StreamActivity : AppCompatActivity()
+@@ -347,3 +410,3 @@ class StreamActivity : AppCompatActivity()
  	override fun dispatchKeyEvent(event: KeyEvent) = viewModel.input.dispatchKeyEvent(event) || super.dispatchKeyEvent(event)
 -	override fun onGenericMotionEvent(event: MotionEvent) = viewModel.input.onGenericMotionEvent(event) || super.onGenericMotionEvent(event)
 +	override fun dispatchGenericMotionEvent(event: MotionEvent) = viewModel.input.onGenericMotionEvent(event) || super.dispatchGenericMotionEvent(event)
@@ -509,14 +557,180 @@ index 77a3165..8bd6f1f 100644
 +                app:switchPadding="8dp" />
 +
              <com.google.android.material.switchmaterial.SwitchMaterial
+diff --git a/android/app/src/main/res/layout/dialog_stream_setup.xml b/android/app/src/main/res/layout/dialog_stream_setup.xml
+new file mode 100644
+index 0000000..3af5501
+--- /dev/null
++++ b/android/app/src/main/res/layout/dialog_stream_setup.xml
+@@ -0,0 +1,29 @@
++<?xml version="1.0" encoding="utf-8"?>
++<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
++    android:layout_width="match_parent"
++    android:layout_height="wrap_content"
++    android:orientation="vertical"
++    android:paddingStart="24dp"
++    android:paddingEnd="24dp"
++    android:paddingTop="8dp"
++    android:paddingBottom="8dp">
++
++    <com.google.android.material.switchmaterial.SwitchMaterial
++        android:id="@+id/frameGenerationSwitch"
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content"
++        android:minHeight="48dp"
++        android:text="@string/stream_frame_generation" />
++
++    <TextView
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content"
++        android:text="@string/stream_setup_frame_note" />
++
++    <com.google.android.material.switchmaterial.SwitchMaterial
++        android:id="@+id/displayOnlySwitch"
++        android:layout_width="match_parent"
++        android:layout_height="wrap_content"
++        android:minHeight="48dp"
++        android:text="@string/stream_display_only" />
++</LinearLayout>
+diff --git a/android/app/src/main/res/layout/fragment_controls.xml b/android/app/src/main/res/layout/fragment_controls.xml
+index 7a6b3af..b86081e 100644
+--- a/android/app/src/main/res/layout/fragment_controls.xml
++++ b/android/app/src/main/res/layout/fragment_controls.xml
+@@ -57,3 +57,3 @@
+         app:layout_constraintTop_toTopOf="parent"
+-        app:layout_constraintWidth_max="300dp"
++        app:layout_constraintWidth_max="270dp"
+         app:layout_constraintDimensionRatio="1920:942"
+@@ -64,5 +64,5 @@
+         android:id="@+id/dpadView"
+-        android:layout_width="160dp"
+-        android:layout_height="160dp"
+-        android:padding="16dp"
++        android:layout_width="144dp"
++        android:layout_height="144dp"
++        android:padding="14.4dp"
+         android:layout_marginLeft="16dp"
+@@ -144,4 +144,4 @@
+         android:id="@+id/l3ButtonView"
+-        android:layout_width="64dp"
+-        android:layout_height="64dp"
++        android:layout_width="57.6dp"
++        android:layout_height="57.6dp"
+         app:drawableIdle="@drawable/control_button_l3"
+@@ -153,4 +153,4 @@
+         android:id="@+id/r3ButtonView"
+-        android:layout_width="64dp"
+-        android:layout_height="64dp"
++        android:layout_width="57.6dp"
++        android:layout_height="57.6dp"
+         app:drawableIdle="@drawable/control_button_r3"
+@@ -163,5 +163,5 @@
+         android:id="@+id/psButtonView"
+-        android:layout_width="48dp"
+-        android:layout_height="48dp"
+-        android:padding="8dp"
++        android:layout_width="43.2dp"
++        android:layout_height="43.2dp"
++        android:padding="7.2dp"
+         app:drawableIdle="@drawable/control_button_home"
+@@ -175,8 +175,8 @@
+         android:id="@+id/l2ButtonView"
+-        android:layout_width="88dp"
+-        android:layout_height="80dp"
+-        android:paddingTop="8dp"
+-        android:paddingBottom="8dp"
+-        android:paddingRight="8dp"
+-        android:paddingLeft="16dp"
++        android:layout_width="79.2dp"
++        android:layout_height="72dp"
++        android:paddingTop="7.2dp"
++        android:paddingBottom="7.2dp"
++        android:paddingRight="7.2dp"
++        android:paddingLeft="14.4dp"
+         app:drawableIdle="@drawable/control_button_l2"
+@@ -188,5 +188,5 @@
+         android:id="@+id/l1ButtonView"
+-        android:layout_width="80dp"
+-        android:layout_height="80dp"
+-        android:padding="8dp"
++        android:layout_width="72dp"
++        android:layout_height="72dp"
++        android:padding="7.2dp"
+         android:layout_marginTop="32dp"
+@@ -200,5 +200,5 @@
+         android:id="@+id/shareButtonView"
+-        android:layout_width="48dp"
+-        android:layout_height="48dp"
+-        android:padding="8dp"
++        android:layout_width="43.2dp"
++        android:layout_height="43.2dp"
++        android:padding="7.2dp"
+         android:layout_marginLeft="32dp"
+@@ -211,8 +211,8 @@
+         android:id="@+id/r2ButtonView"
+-        android:layout_width="88dp"
+-        android:layout_height="80dp"
+-        android:paddingTop="8dp"
+-        android:paddingRight="16dp"
+-        android:paddingLeft="8dp"
+-        android:paddingBottom="8dp"
++        android:layout_width="79.2dp"
++        android:layout_height="72dp"
++        android:paddingTop="7.2dp"
++        android:paddingRight="14.4dp"
++        android:paddingLeft="7.2dp"
++        android:paddingBottom="7.2dp"
+         app:drawableIdle="@drawable/control_button_r2"
+@@ -224,5 +224,5 @@
+         android:id="@+id/r1ButtonView"
+-        android:layout_width="80dp"
+-        android:layout_height="80dp"
+-        android:padding="8dp"
++        android:layout_width="72dp"
++        android:layout_height="72dp"
++        android:padding="7.2dp"
+         android:layout_marginTop="32dp"
+@@ -236,5 +236,5 @@
+         android:id="@+id/optionsButtonView"
+-        android:layout_width="48dp"
+-        android:layout_height="48dp"
+-        android:padding="8dp"
++        android:layout_width="43.2dp"
++        android:layout_height="43.2dp"
++        android:padding="7.2dp"
+         android:layout_marginRight="32dp"
+diff --git a/android/app/src/main/res/values/dimens.xml b/android/app/src/main/res/values/dimens.xml
+index 9ee2e9b..c6b696d 100644
+--- a/android/app/src/main/res/values/dimens.xml
++++ b/android/app/src/main/res/values/dimens.xml
+@@ -2,9 +2,9 @@
+ <resources>
+-    <dimen name="control_face_button_size_half">88dp</dimen>
+-    <dimen name="control_face_button_size_full">176dp</dimen>
+-    <dimen name="control_face_button_padding_to_center">24dp</dimen>
+-    <dimen name="control_face_button_padding_to_outside">16dp</dimen>
+-    <dimen name="control_face_button_padding_to_full">64dp</dimen>
+-    <dimen name="control_analog_stick_radius">48dp</dimen>
+-    <dimen name="control_analog_stick_handle_radius">32dp</dimen>
++    <dimen name="control_face_button_size_half">79.2dp</dimen>
++    <dimen name="control_face_button_size_full">158.4dp</dimen>
++    <dimen name="control_face_button_padding_to_center">21.6dp</dimen>
++    <dimen name="control_face_button_padding_to_outside">14.4dp</dimen>
++    <dimen name="control_face_button_padding_to_full">57.6dp</dimen>
++    <dimen name="control_analog_stick_radius">43.2dp</dimen>
++    <dimen name="control_analog_stick_handle_radius">28.8dp</dimen>
+     <dimen name="floating_action_button_speed_dial_anim_offset">48dp</dimen>
 diff --git a/android/app/src/main/res/values/strings_display_only.xml b/android/app/src/main/res/values/strings_display_only.xml
 new file mode 100644
-index 0000000..04b739d
+index 0000000..92fdb4d
 --- /dev/null
 +++ b/android/app/src/main/res/values/strings_display_only.xml
-@@ -0,0 +1,5 @@
+@@ -0,0 +1,8 @@
 +<resources>
 +    <string name="stream_display_only">Display only</string>
 +    <string name="stream_frame_generation">30 → 60 frame generation (beta)</string>
 +    <string name="stream_frame_generation_unavailable">Frame generation could not start. Returning to standard video.</string>
++    <string name="stream_setup_title">Streaming options</string>
++    <string name="stream_setup_start">Start stream</string>
++    <string name="stream_setup_frame_note">Generates extra frames on the phone when the stream runs at 30 FPS.</string>
 +</resources>
