@@ -134,3 +134,7 @@ Do not mark a phase complete based solely on plans, source presence or an unexec
 ## Version 0.1.7
 
 Fresh launches show a five-second branded loading screen. Frame generation requests 30 FPS, renders on display callbacks and presents each midpoint before its real frame. A phone test is still required to measure jitter and latency.
+
+## Version 0.1.8
+
+A three-stage GPU motion search refines midpoint synthesis. The Android shaders ran on desktop Mesa against a known 16-pixel horizontal pan. Mean RGB error against the true midpoint in the interior was 0.055 levels out of 255, versus 44.69 for a repeated source frame. Device performance and complex scene quality remain open. Streaming options now remember the last selections.

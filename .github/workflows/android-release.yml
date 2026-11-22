@@ -31,18 +31,18 @@ jobs:
         run: |
           cd artifact
           sha256sum --check SHA256SUMS.txt
-          grep -F "versionCode='8' versionName='0.1.7'" apk-badging.txt
-          cp engine/chiaki/android/app/build/outputs/apk/debug/app-debug.apk PS-PlayAnywhere-0.1.7-debug.apk
-          sha256sum PS-PlayAnywhere-0.1.7-debug.apk > PS-PlayAnywhere-0.1.7-SHA256.txt
+          grep -F "versionCode='9' versionName='0.1.8'" apk-badging.txt
+          cp engine/chiaki/android/app/build/outputs/apk/debug/app-debug.apk PS-PlayAnywhere-0.1.8-debug.apk
+          sha256sum PS-PlayAnywhere-0.1.8-debug.apk > PS-PlayAnywhere-0.1.8-SHA256.txt
           cat > release-notes.md <<'NOTES'
           Android debug build for physical testing.
 
-          - Shows a five-second branded loading screen on a fresh launch.
-          - Frame generation now requests a 30 FPS source and schedules rendering from Android display callbacks. Each generated midpoint is followed by its real frame, with stale pairs skipped after stalls.
-          - Reduces repeated OpenGL lookups and framebuffer validation during rendering. Physical frame pacing and latency measurements are pending.
+          - GPU frame generation now estimates larger movements and refines their direction in three passes within the motion shader. Pixels with inconsistent motion lean toward the decoded image to limit double edges.
+          - Redesigned the streaming options panel and remembered the last options used to start a session.
+          - Verified midpoint image synthesis on a synthetic pan with the actual shaders on desktop Mesa. Device performance and game footage still need testing.
 
           Android requires matching signing certificates for an in-place update. This CI debug APK may have a different certificate from an earlier build. Uninstalling an existing copy removes its local data.
           NOTES
-          gh release create v0.1.7 PS-PlayAnywhere-0.1.7-debug.apk PS-PlayAnywhere-0.1.7-SHA256.txt \
+          gh release create v0.1.8 PS-PlayAnywhere-0.1.8-debug.apk PS-PlayAnywhere-0.1.8-SHA256.txt \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "PS PlayAnywhere 0.1.7 (Android debug)" --notes-file release-notes.md --latest
+            --title "PS PlayAnywhere 0.1.8 (Android debug)" --notes-file release-notes.md --latest

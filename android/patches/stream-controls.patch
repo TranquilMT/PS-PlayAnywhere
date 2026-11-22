@@ -1,5 +1,5 @@
 diff --git a/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt b/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
-index 6465527..ba6822b 100644
+index 6465527..bfc10d4 100644
 --- a/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
 +++ b/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
 @@ -21,2 +21,3 @@ import com.metallic.chiaki.common.ext.viewModelFactory
@@ -14,18 +14,25 @@ index 6465527..ba6822b 100644
 +			intro.postDelayed({ (intro.parent as? android.view.ViewGroup)?.removeView(intro) }, 5000L)
 +		}
  
-@@ -183,6 +189,15 @@ class MainActivity : AppCompatActivity()
+@@ -183,6 +189,22 @@ class MainActivity : AppCompatActivity()
  				val connectInfo = ConnectInfo(host.isPS5, host.host, registeredHost.rpRegistKey, registeredHost.rpKey, Preferences(this).videoProfile)
 -				Intent(this, StreamActivity::class.java).let {
 -					it.putExtra(StreamActivity.EXTRA_CONNECT_INFO, connectInfo)
 -					startActivity(it)
 -				}
 +				val setup = DialogStreamSetupBinding.inflate(layoutInflater)
++				val defaults = getSharedPreferences("stream_options", MODE_PRIVATE)
++				setup.frameGenerationSwitch.isChecked = defaults.getBoolean(StreamActivity.EXTRA_FRAME_GENERATION, false)
++				setup.displayOnlySwitch.isChecked = defaults.getBoolean(StreamActivity.EXTRA_DISPLAY_ONLY, false)
 +				MaterialAlertDialogBuilder(this)
 +					.setTitle(R.string.stream_setup_title)
 +					.setView(setup.root)
 +					.setNegativeButton(android.R.string.cancel, null)
 +					.setPositiveButton(R.string.stream_setup_start) { _, _ ->
++						defaults.edit()
++							.putBoolean(StreamActivity.EXTRA_FRAME_GENERATION, setup.frameGenerationSwitch.isChecked)
++							.putBoolean(StreamActivity.EXTRA_DISPLAY_ONLY, setup.displayOnlySwitch.isChecked)
++							.apply()
 +						val stream = Intent(this, StreamActivity::class.java)
 +							.putExtra(StreamActivity.EXTRA_CONNECT_INFO, connectInfo)
 +							.putExtra(StreamActivity.EXTRA_FRAME_GENERATION, setup.frameGenerationSwitch.isChecked)
@@ -75,10 +82,10 @@ index dd32a40..68f141e 100644
  	fun attachToSurfaceView(surfaceView: SurfaceView)
 diff --git a/android/app/src/main/java/com/metallic/chiaki/stream/InterpolationView.kt b/android/app/src/main/java/com/metallic/chiaki/stream/InterpolationView.kt
 new file mode 100644
-index 0000000..bd33cc4
+index 0000000..6ff53eb
 --- /dev/null
 +++ b/android/app/src/main/java/com/metallic/chiaki/stream/InterpolationView.kt
-@@ -0,0 +1,319 @@
+@@ -0,0 +1,336 @@
 +// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 +package com.metallic.chiaki.stream
 +
@@ -359,21 +366,32 @@ index 0000000..bd33cc4
 +                vec3 b = texture2D(afterFrame, p + d * 0.5).rgb;
 +                return dot(abs(a - b), vec3(0.299, 0.587, 0.114));
 +            }
++            float cost(vec2 d) {
++                vec2 v = d * pixel;
++                vec2 s = pixel * 4.0;
++                return (diff(uv, v) + diff(uv+s,v) + diff(uv-s,v)
++                    + diff(uv+vec2(s.x,-s.y),v) + diff(uv+vec2(-s.x,s.y),v)) * 0.2
++                    + 0.00015 * length(d);
++            }
++            void search(vec2 center, float stepSize, inout vec2 best, inout float score) {
++                for (int y=-1; y<=1; y++) for (int x=-1; x<=1; x++) {
++                    if (x==0 && y==0) continue;
++                    vec2 candidate = center + vec2(float(x),float(y)) * stepSize;
++                    float e = cost(candidate);
++                    if (e < score) { score=e; best=candidate; }
++                }
++            }
 +            void main() {
 +                vec2 best = vec2(0.0);
-+                float score = 10.0;
-+                vec2 s = pixel * 5.0;
-+                for (int y = -2; y <= 2; y++) {
-+                    for (int x = -2; x <= 2; x++) {
-+                        vec2 d = vec2(float(x), float(y));
-+                        vec2 v = d * pixel * 6.0;
-+                        float e = (diff(uv, v) + diff(uv + vec2(s.x, 0.0), v) +
-+                            diff(uv - vec2(s.x, 0.0), v) + diff(uv + vec2(0.0, s.y), v) +
-+                            diff(uv - vec2(0.0, s.y), v)) * 0.2 + 0.002 * length(d);
-+                        if (e < score) { score = e; best = d; }
-+                    }
++                float score = cost(best);
++                if (score > 0.003) {
++                    search(vec2(0.0),16.0,best,score);
++                    vec2 center = best;
++                    search(center,6.0,best,score);
++                    center = best;
++                    search(center,2.0,best,score);
 +                }
-+                gl_FragColor = vec4(best * 0.25 + 0.5, 1.0 - smoothstep(0.04, 0.14, score), 1.0);
++                gl_FragColor = vec4((best + 32.0)/64.0, 1.0-smoothstep(0.035,0.13,score),1.0);
 +            }
 +        """
 +        const val PRESENT = """
@@ -389,10 +407,16 @@ index 0000000..bd33cc4
 +                    gl_FragColor = texture2D(afterFrame, uv);
 +                } else {
 +                    vec3 field = texture2D(motion, uv).rgb;
-+                    vec2 halfShift = (field.xy - 0.5) * 12.0 * pixel;
++                    vec4 current = texture2D(afterFrame, uv);
++                    vec4 previous = texture2D(beforeFrame, uv);
++                    vec3 weights = vec3(0.299,0.587,0.114);
++                    float change = dot(abs(current.rgb-previous.rgb),weights);
++                    vec2 halfShift = (field.xy * 64.0 - 32.0) * 0.5 * pixel;
 +                    vec4 a = texture2D(beforeFrame, uv - halfShift);
 +                    vec4 b = texture2D(afterFrame, uv + halfShift);
-+                    gl_FragColor = mix(texture2D(afterFrame, uv), (a + b) * 0.5, field.z);
++                    float mismatch = dot(abs(a.rgb-b.rgb),weights);
++                    float confidence = field.z * (1.0-smoothstep(0.04,0.16,mismatch));
++                    gl_FragColor = mix(current,(a+b)*0.5,confidence*smoothstep(0.002,0.02,change));
 +                }
 +            }
 +        """
@@ -566,6 +590,17 @@ index df69378..dc6d744 100644
 +	}
 +
  	override fun onCleared()
+diff --git a/android/app/src/main/res/drawable/stream_option_panel.xml b/android/app/src/main/res/drawable/stream_option_panel.xml
+new file mode 100644
+index 0000000..8a9411b
+--- /dev/null
++++ b/android/app/src/main/res/drawable/stream_option_panel.xml
+@@ -0,0 +1,5 @@
++<shape xmlns:android="http://schemas.android.com/apk/res/android">
++    <solid android:color="#122DCABD" />
++    <stroke android:width="1dp" android:color="#5371F4DF" />
++    <corners android:radius="12dp" />
++</shape>
 diff --git a/android/app/src/main/res/layout/activity_stream.xml b/android/app/src/main/res/layout/activity_stream.xml
 index 77a3165..8bd6f1f 100644
 --- a/android/app/src/main/res/layout/activity_stream.xml
@@ -600,20 +635,23 @@ index 77a3165..8bd6f1f 100644
              <com.google.android.material.switchmaterial.SwitchMaterial
 diff --git a/android/app/src/main/res/layout/dialog_stream_setup.xml b/android/app/src/main/res/layout/dialog_stream_setup.xml
 new file mode 100644
-index 0000000..3af5501
+index 0000000..7e85d1c
 --- /dev/null
 +++ b/android/app/src/main/res/layout/dialog_stream_setup.xml
-@@ -0,0 +1,29 @@
+@@ -0,0 +1,38 @@
 +<?xml version="1.0" encoding="utf-8"?>
-+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
++<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
 +    android:layout_width="match_parent"
 +    android:layout_height="wrap_content"
++    android:fillViewport="true">
++<LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
 +    android:orientation="vertical"
 +    android:paddingStart="24dp"
 +    android:paddingEnd="24dp"
 +    android:paddingTop="8dp"
 +    android:paddingBottom="8dp">
 +
++    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="vertical" android:background="@drawable/stream_option_panel" android:padding="12dp">
 +    <com.google.android.material.switchmaterial.SwitchMaterial
 +        android:id="@+id/frameGenerationSwitch"
 +        android:layout_width="match_parent"
@@ -626,13 +664,19 @@ index 0000000..3af5501
 +        android:layout_height="wrap_content"
 +        android:text="@string/stream_setup_frame_note" />
 +
++    </LinearLayout>
++    <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
++        android:orientation="vertical" android:layout_marginTop="8dp" android:background="@drawable/stream_option_panel" android:padding="12dp">
 +    <com.google.android.material.switchmaterial.SwitchMaterial
 +        android:id="@+id/displayOnlySwitch"
 +        android:layout_width="match_parent"
 +        android:layout_height="wrap_content"
 +        android:minHeight="48dp"
 +        android:text="@string/stream_display_only" />
++    <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/stream_setup_display_note" />
++    </LinearLayout>
 +</LinearLayout>
++</ScrollView>
 diff --git a/android/app/src/main/res/layout/fragment_controls.xml b/android/app/src/main/res/layout/fragment_controls.xml
 index 7a6b3af..b86081e 100644
 --- a/android/app/src/main/res/layout/fragment_controls.xml
@@ -780,15 +824,16 @@ index 9ee2e9b..c6b696d 100644
      <dimen name="floating_action_button_speed_dial_anim_offset">48dp</dimen>
 diff --git a/android/app/src/main/res/values/strings_display_only.xml b/android/app/src/main/res/values/strings_display_only.xml
 new file mode 100644
-index 0000000..92fdb4d
+index 0000000..5b705d9
 --- /dev/null
 +++ b/android/app/src/main/res/values/strings_display_only.xml
-@@ -0,0 +1,8 @@
+@@ -0,0 +1,9 @@
 +<resources>
 +    <string name="stream_display_only">Display only</string>
 +    <string name="stream_frame_generation">30 → 60 frame generation (beta)</string>
 +    <string name="stream_frame_generation_unavailable">Frame generation could not start. Returning to standard video.</string>
 +    <string name="stream_setup_title">Streaming options</string>
 +    <string name="stream_setup_start">Start stream</string>
-+    <string name="stream_setup_frame_note">Generates extra frames on the phone when the stream runs at 30 FPS.</string>
++    <string name="stream_setup_frame_note">The phone’s GPU estimates motion between 30 FPS stream frames to draw a new frame halfway between them.</string>
++    <string name="stream_setup_display_note">Watch on your phone with touch controls and phone controller input disabled.</string>
 +</resources>

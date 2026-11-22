@@ -79,6 +79,7 @@ The Phase 0 build artifact is an upstream Chiaki debug reference used to verify 
 - [x] Estimate motion between adjacent frames and synthesize one midpoint frame per pair on the phone
 - [ ] Pace real and generated frames at 16.7 ms intervals for a steady 30 FPS source and verify each generated frame is distinct
 - [ ] Compare GPU Vulkan/OpenGL ES implementations
+- [x] Verify shader output against a known midpoint for a synthetic camera pan
 - [ ] Test UI/HUD ghosting, camera pans and fast motion
 - [ ] Record extra frame latency, battery use and thermal cost
 - [x] Add off/on toggle, default off, and automatic fallback

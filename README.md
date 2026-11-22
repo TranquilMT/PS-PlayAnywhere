@@ -22,7 +22,7 @@ export SOURCE_DATE_EPOCH="$(git -C engine/chiaki show -s --format=%ct HEAD)"
 gradle -p engine/chiaki/android :app:assembleDebug --dependency-verification strict
 ```
 
-The package ID is `com.tranquil.ps5remoteplay`. The current development version is `0.1.7` with version code `8`.
+The package ID is `com.tranquil.ps5remoteplay`. The current development version is `0.1.8` with version code `9`.
 
 See [ROADMAP.md](ROADMAP.md) for the implementation and verification checklist.
 
