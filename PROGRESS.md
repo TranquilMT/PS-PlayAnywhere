@@ -3,15 +3,15 @@
 Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMAP.md](ROADMAP.md) for the full 12-phase task breakdown.
 
 ## Current state
-**Active:** Phase 0 — Baseline, licensing and reproducibility.
+**Active:** Phase 0 is complete. Phase 1 source integration is next.
 **Verified:** The pinned upstream Chiaki source compiles locally and on GitHub Actions. Two clean CI builds produced identical contents for all 1,061 APK entries. Debug signing certificates differ across runners.
-**Open in Phase 0:** Enforce remaining dependency hashes for the release build environment. Phase 1 starts after the Phase 0 checklist is complete.
+**Dependency enforcement:** CMake verifies native archive SHA-256 values and Gradle rejects mismatched Maven artifacts. Local debug and unsigned release builds passed under strict verification.
 **Release:** The signed PS PlayAnywhere APK is a Phase 10 deliverable. Device installation, console pairing, PSN and remote play have yet to be tested.
 
 ## Phase gates
 | Phase | Name | Status | Evidence / next gate |
 | --- | --- | --- | --- |
-| 0 | Baseline, licensing and reproducibility | IN PROGRESS | License audit and repeatable upstream APK payload verified. Release dependency hash enforcement remains open. |
+| 0 | Baseline, licensing and reproducibility | COMPLETE | Baseline license audit, repeatable APK payload and strict dependency checksum validation passed. |
 | 1 | Android source integration | NOT STARTED | Branded native APK installs |
 | 2 | Local console streaming | NOT STARTED | 15-minute gameplay test |
 | 3 | PSN login and discovery | NOT STARTED | Real-account authentication test |
@@ -32,6 +32,12 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - Native source is compiled through root `CMakeLists.txt`; upstream has git submodules.
 - Upstream COPYING contains GNU AGPL v3.
 - Remote PSN setup docs state IPv4-only and warn that some NAT types cannot hole punch.
+
+## Phase 0 checksum verification
+
+- CMake enforces SHA-256 for json-c and miniupnpc alongside the original OpenSSL pin. Tests accepted both authentic archives and rejected altered copies.
+- The committed Gradle lock covers 844 artifacts across 407 coordinates. Both local debug and unsigned release tasks passed strict verification. A deliberately changed Android Gradle Plugin digest stopped Gradle at classpath verification.
+- [Run #8](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45008670005) exposed two missing JUnit BOM metadata files. [Run #9](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45008905556) exposed a missing coroutines BOM POM. Their Maven Central SHA-256 values were independently checked and added.
 
 ## Verified CI run #7
 
@@ -80,7 +86,7 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - 2026-11-22: Expanded roadmap to 12 gated engineering phases and updated evidence ledger.
 
 ## Next actions (strict order)
-1. Enforce the remaining dependency checksums and verify the pinned inputs in the release build environment.
-2. Complete Phase 0 before starting Android source integration in Phase 1.
+1. Choose the pinned source integration for Phase 1.
+2. Verify the branded Android build and physical launch.
 
 Do not mark a phase complete based solely on plans, source presence or an unexecuted CI workflow.

@@ -12,7 +12,7 @@ Each phase has an exit gate. A feature is complete only when build output, test 
 - [x] Pin upstream to a specific source commit and assert its identity in CI
 - [x] Complete third-party license audit for the upstream baseline (see [UPSTREAM.md](docs/UPSTREAM.md))
 - [x] Compare independent upstream builds and document differences ([run #7](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45006004955))
-- [ ] Finish release-environment reproducibility checks by enforcing the remaining dependency hashes
+- [x] Enforce the remaining Maven and native archive SHA-256 pins in the Android build
 
 The Phase 0 build artifact is an upstream Chiaki debug reference used to verify the toolchain. The signed PS PlayAnywhere release APK is tracked in Phase 10.
 

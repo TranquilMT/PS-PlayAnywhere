@@ -53,7 +53,7 @@ The following SHA-256 values were computed from the archives at the URLs used by
 
 The upstream APK packages three shared libraries in each ABI: `libchiaki-jni.so`, `liboboe.so` and `libc++_shared.so`. ARM64 JNI links to Oboe, the C++ runtime and Android-supplied system libraries. The pinned CMake files identify its statically linked dependencies in the table above. Carry the component notices and corresponding source into the Phase 10 release package.
 
-Enforcing the json-c and miniupnpc archive checksums at build time remains open.
+The build preparation script applies both archive hashes through CMake `URL_HASH`. OpenSSL retains its upstream SHA-256 pin. Gradle strict verification uses the [SHA-256 manifest](../build-support/verification-metadata.xml) for 844 artifacts across 407 coordinates, including Maven metadata. The lock covers the Linux debug and unsigned release build paths.
 
 ## Android integration notes
 
@@ -71,7 +71,7 @@ The first workflow builds upstream source without modifying it. It does **not** 
 - [x] Verify GitHub Actions successful run ([run #5](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45005001825))
 - [x] Record and independently verify the APK SHA-256 ([PROGRESS.md](../PROGRESS.md))
 - [x] Verify baseline dependency licenses against the resolved runtime graph and native dependency inventory
-- [ ] Pin the remaining dependency hashes for the release environment
+- [x] Enforce the Android Maven artifact and native archive SHA-256 pins during builds
 - [x] Rebuild twice and compare reproducibility characteristics ([run #7](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45006004955)). All APK payload entries matched. The signed debug APKs used different runner-generated certificates.
 - [ ] Sign and publish a compliant PS PlayAnywhere release
 
