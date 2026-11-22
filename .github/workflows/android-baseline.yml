@@ -60,16 +60,23 @@ jobs:
           /usr/bin/python3 "$GITHUB_WORKSPACE/upstream/third-party/nanopb/generator/nanopb_generator.py" takion.pb
           test -s takion.pb.c
           test -s takion.pb.h
-      - name: Validate Gradle wrapper checksum metadata
+      - name: Install verified Gradle 8.11.1
         run: |
-          test -f upstream/android/gradle/wrapper/gradle-wrapper.jar
-          test -f upstream/android/gradle/wrapper/gradle-wrapper.properties
           grep -F 'gradle-8.11.1-bin.zip' upstream/android/gradle/wrapper/gradle-wrapper.properties
+          cd "$RUNNER_TEMP"
+          curl --fail --silent --show-error --location --retry 3 \
+            https://services.gradle.org/distributions/gradle-8.11.1-bin.zip \
+            --output gradle-8.11.1-bin.zip
+          printf '%s  %s\n' f397b287023acdba1e9f6fc5ea72d22dd63669d59ed4a289a29b1a76eee151c6 gradle-8.11.1-bin.zip |
+            sha256sum --check
+          unzip -q gradle-8.11.1-bin.zip
+          echo "$RUNNER_TEMP/gradle-8.11.1/bin" >> "$GITHUB_PATH"
       - name: Build upstream Android debug APK
         working-directory: upstream/android
-        run: |
-          chmod +x gradlew
-          ./gradlew :app:assembleDebug --stacktrace --no-daemon
+        run: gradle :app:assembleDebug --stacktrace --no-daemon
+      - name: Record resolved Android runtime dependencies
+        working-directory: upstream/android
+        run: gradle :app:dependencies --configuration debugRuntimeClasspath --no-daemon > "$GITHUB_WORKSPACE/android-runtime-dependencies.txt"
       - name: Verify APK and record SHA-256
         run: |
           apk=upstream/android/app/build/outputs/apk/debug/app-debug.apk
@@ -90,6 +97,7 @@ jobs:
             upstream-commit.txt
             SHA256SUMS.txt
             apk-badging.txt
+            android-runtime-dependencies.txt
       - name: Upload failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4

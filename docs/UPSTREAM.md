@@ -10,7 +10,7 @@
 
 ## Build dependencies observed
 - JDK 17
-- Gradle wrapper 8.11.1
+- Gradle distribution 8.11.1, with published SHA-256 checked before use. The pinned upstream wrapper targets 8.11.1 but its JAR identifies itself as Gradle 4.6, so CI invokes the verified distribution directly.
 - Android Gradle Plugin 8.7.3
 - Android compile SDK 35
 - Android NDK 28.2.13676358
