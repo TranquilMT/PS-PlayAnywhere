@@ -44,7 +44,16 @@ The following SHA-256 values were computed from the archives at the URLs used by
 | json-c `json-c-0.17-20230812.tar.gz` | `024d302a3aadcbf9f78735320a6d5aedf8b77876c8ac8bbb95081ca55054c7eb` |
 | miniupnpc `miniupnpc_2_2_8.tar.gz` | `3d0d49f761f09c1321ceb663d1b008825361d7bd242640c60ae467e82642502a` |
 
-The audit remains open for transitive Gradle dependencies. Enforcing the two archive checksums at build time remains open.
+### Resolved runtime license evidence
+
+[Run #6](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45005296420) archived the `debugRuntimeClasspath` report used for this audit. The report resolves 89 distinct runtime coordinates. Published POMs declare Apache-2.0 for 87 of them. The remaining two were resolved from primary source:
+
+- `com.google.guava:listenablefuture:1.0`. The [published source JAR](https://repo.maven.apache.org/maven2/com/google/guava/listenablefuture/1.0/listenablefuture-1.0-sources.jar) gives the file-level Apache-2.0 notice.
+- `com.google.oboe:oboe:1.10.0`. The [matching source license](https://github.com/google/oboe/blob/1.10.0/LICENSE) is Apache-2.0.
+
+The upstream APK packages three shared libraries in each ABI: `libchiaki-jni.so`, `liboboe.so` and `libc++_shared.so`. ARM64 JNI links to Oboe, the C++ runtime and Android-supplied system libraries. The pinned CMake files identify its statically linked dependencies in the table above. Carry the component notices and corresponding source into the Phase 10 release package.
+
+Enforcing the json-c and miniupnpc archive checksums at build time remains open.
 
 ## Android integration notes
 
@@ -61,7 +70,8 @@ The first workflow builds upstream source without modifying it. It does **not** 
 - [x] Generate and require non-empty SHA256SUMS.txt after build
 - [x] Verify GitHub Actions successful run ([run #5](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45005001825))
 - [x] Record and independently verify the APK SHA-256 ([PROGRESS.md](../PROGRESS.md))
-- [ ] Verify full dependency licenses and hashes
+- [x] Verify baseline dependency licenses against the resolved runtime graph and native dependency inventory
+- [ ] Pin the remaining dependency hashes for the release environment
 - [ ] Rebuild twice and compare reproducibility characteristics
 - [ ] Sign and publish a compliant PS PlayAnywhere release
 

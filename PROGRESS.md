@@ -5,13 +5,13 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 ## Current state
 **Active:** Phase 0 — Baseline, licensing and reproducibility.
 **Verified:** The pinned upstream Chiaki source compiles on GitHub Actions. The archived debug APK's signature, ARM64 libraries and SHA-256 were verified independently after download.
-**Open in Phase 0:** Third-party license audit and comparison of independent builds. Phase 1 starts after these checklist items are complete.
+**Open in Phase 0:** Verify reproducibility after fixing an OpenSSL build timestamp difference. Phase 1 starts after the Phase 0 checklist is complete.
 **Release:** The signed PS PlayAnywhere APK is a Phase 10 deliverable. Device installation, console pairing, PSN and remote play have yet to be tested.
 
 ## Phase gates
 | Phase | Name | Status | Evidence / next gate |
 | --- | --- | --- | --- |
-| 0 | Baseline, licensing and reproducibility | IN PROGRESS | Run #5 passed. Finish the dependency license audit and independent rebuild comparison. |
+| 0 | Baseline, licensing and reproducibility | IN PROGRESS | Two CI builds passed and the baseline license audit is recorded. Two clean builds must verify the timestamp fix. |
 | 1 | Android source integration | NOT STARTED | Branded native APK installs |
 | 2 | Local console streaming | NOT STARTED | 15-minute gameplay test |
 | 3 | PSN login and discovery | NOT STARTED | Real-account authentication test |
@@ -33,11 +33,16 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - Upstream COPYING contains GNU AGPL v3.
 - Remote PSN setup docs state IPv4-only and warn that some NAT types cannot hole punch.
 
+## Verified CI run #6
+- [Run #6](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45005296420), job `137155454047`, built the same upstream revision using the checksum-verified Gradle distribution. The APK checksum `23a721f3461bf297f6dd1434a5948ce45dda79e6e3ae6b742cec5a5d59fbe152` matched after download.
+- Compared with run #5, 1,057 APK entries matched and four changed. All four changed files were `libchiaki-jni.so`, one per ABI. The ARM64 comparison showed a different OpenSSL build timestamp and ELF build ID. The two APKs also had different debug signing certificates.
+- The baseline audit matched all 89 resolved Gradle runtime coordinates to license evidence and identified the packaged native libraries. See [UPSTREAM.md](docs/UPSTREAM.md).
+- The workflow now sets `SOURCE_DATE_EPOCH` from the pinned upstream commit and schedules two independent builds. Matching APK payloads still need to be verified. Debug signing may differ across runners.
+
 ## Verified CI run #5
 - [Run #5](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45005001825), job `137154496486`, built upstream Chiaki `43728af2e639fecb8a7af1cd68c29820a40de973`.
 - The Protocol Buffers preflight, native Gradle build, APK checks and artifact upload passed. The upstream debug package was `com.metallic.chiaki` version `1.10.1` (version code `12`).
 - SHA-256 of the APK: `4d9ec2f8f5e641cbc8226fd80689834a03e4f657d9541890a7d612656f6501e0`. The downloaded APK matched this digest, passed APK Signature Scheme v2 verification and contained ARM64 builds of Chiaki JNI, Oboe and the C++ runtime.
-- [Run #6](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45005296420) passed the Gradle distribution checksum check and is rebuilding the same upstream revision with the runtime dependency report enabled.
 
 ## Verified CI run #4
 - [Run #4](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45004670277), job `137153477589`, built commit `c0dc35d`.
@@ -64,8 +69,7 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - 2026-11-22: Expanded roadmap to 12 gated engineering phases and updated evidence ledger.
 
 ## Next actions (strict order)
-1. Check run #6 and audit the resolved third-party dependencies against the packaged files.
-2. Compare independent upstream builds and record any differences between their APK contents and signatures.
-3. Complete Phase 0 before starting Android source integration in Phase 1.
+1. Compare the two clean builds after the timestamp fix using their ZIP-entry manifests. Record any remaining differences.
+2. Complete Phase 0 before starting Android source integration in Phase 1.
 
 Do not mark a phase complete based solely on plans, source presence or an unexecuted CI workflow.

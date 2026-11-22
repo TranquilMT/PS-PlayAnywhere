@@ -6,8 +6,13 @@ on:
       - '.github/workflows/android-baseline.yml'
 jobs:
   build:
+    name: Baseline build (${{ matrix.sample }})
     runs-on: ubuntu-24.04
     timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        sample: [reference, repeat]
     steps:
       - name: Checkout PS PlayAnywhere
         uses: actions/checkout@v4
@@ -24,6 +29,8 @@ jobs:
           expected="43728af2e639fecb8a7af1cd68c29820a40de973"
           echo "$actual" | tee upstream-commit.txt
           test "$actual" = "$expected"
+          # OpenSSL uses this timestamp when generating its build information.
+          echo "SOURCE_DATE_EPOCH=$(git -C upstream show -s --format=%ct HEAD)" >> "$GITHUB_ENV"
       - name: Java 17
         uses: actions/setup-java@v4
         with:
@@ -41,7 +48,7 @@ jobs:
           fi
           test -x "$SDKMANAGER"
           printf 'y\\n' | "$SDKMANAGER" --licenses > /tmp/android-licenses.log || true
-          "$SDKMANAGER" --install "platforms;android-35" "build-tools;35.0.0" "cmake;3.22.1" "ndk;28.2.13676358"
+          "$SDKMANAGER" --install "platforms;android-35" "build-tools;34.0.0" "build-tools;35.0.0" "cmake;3.22.1" "ndk;28.2.13676358"
           echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
           "$SDKMANAGER" --list_installed
@@ -87,22 +94,32 @@ jobs:
           grep -F "package: name='com.metallic.chiaki'" apk-badging.txt
           grep -E "^native-code: .*'arm64-v8a'" apk-badging.txt
           sha256sum "$apk" | tee SHA256SUMS.txt
+          /usr/bin/python3 - "$apk" > apk-payload-sha256.txt <<'PY'
+          from hashlib import sha256
+          import sys
+          from zipfile import ZipFile
+
+          with ZipFile(sys.argv[1]) as apk:
+              for name in sorted(apk.namelist()):
+                  print(f"{sha256(apk.read(name)).hexdigest()}  {name}")
+          PY
       - name: Upload APK and provenance
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: chiaki-android-baseline-debug
+          name: chiaki-android-baseline-debug-${{ matrix.sample }}-${{ github.run_attempt }}
           path: |
             upstream/android/app/build/outputs/apk/debug/*.apk
             upstream-commit.txt
             SHA256SUMS.txt
             apk-badging.txt
+            apk-payload-sha256.txt
             android-runtime-dependencies.txt
       - name: Upload failure diagnostics
         if: failure()
         uses: actions/upload-artifact@v4
         with:
-          name: android-baseline-build-diagnostics
+          name: android-baseline-build-diagnostics-${{ matrix.sample }}-${{ github.run_attempt }}
           path: |
             upstream/android/app/build/reports/
             upstream/android/.gradle/
