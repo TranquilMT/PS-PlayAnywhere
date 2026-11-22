@@ -10,8 +10,8 @@ index 61618b5..33c8e9c 100644
          targetSdk 35
 -        versionCode 12
 -        versionName chiakiVersion
-+        versionCode 12
-+        versionName "0.1.11"
++        versionCode 13
++        versionName "0.1.12"
          externalNativeBuild {
 diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
 index a9594cb..90170ca 100644

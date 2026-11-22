@@ -124,10 +124,10 @@ index dd32a40..68f141e 100644
  	fun attachToSurfaceView(surfaceView: SurfaceView)
 diff --git a/android/app/src/main/java/com/metallic/chiaki/stream/InterpolationView.kt b/android/app/src/main/java/com/metallic/chiaki/stream/InterpolationView.kt
 new file mode 100644
-index 0000000..7ebfbc8
+index 0000000..0c1a61f
 --- /dev/null
 +++ b/android/app/src/main/java/com/metallic/chiaki/stream/InterpolationView.kt
-@@ -0,0 +1,344 @@
+@@ -0,0 +1,348 @@
 +// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 +package com.metallic.chiaki.stream
 +
@@ -465,8 +465,12 @@ index 0000000..7ebfbc8
 +                    vec4 a = texture2D(beforeFrame, uv - halfShift);
 +                    vec4 b = texture2D(afterFrame, uv + halfShift);
 +                    float mismatch = dot(abs(a.rgb-b.rgb),weights);
-+                    float confidence = field.z * (1.0-smoothstep(0.04,0.16,mismatch));
-+                    gl_FragColor = mix(current,(a+b)*0.5,confidence*smoothstep(0.002,0.02,change));
++                    // Learned blending weights fitted on synthetic layered motion.
++                    vec4 features = vec4(1.0, field.z, mismatch, change);
++                    float logit = dot(features, vec4(7.37532, -3.16321, -8.0, 7.76107));
++                    float blend = 1.0 / (1.0 + exp(-clamp(logit, -12.0, 12.0)));
++                    float gate = min(1.0, 4.0 * field.z) * clamp((0.40 - mismatch) / 0.16, 0.0, 1.0);
++                    gl_FragColor = mix(current, (a+b)*0.5, gate * blend);
 +                }
 +            }
 +        """

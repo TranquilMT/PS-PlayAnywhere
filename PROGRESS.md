@@ -150,3 +150,7 @@ Added pre-stream PS5 quality presets, per-console resolution choice and a live r
 ## Version 0.1.11
 
 Streaming options can limit requested video bitrate to 5 Mbps independently of resolution. Each paired console remembers its limit and the usage preview uses the effective rate. Device testing is pending.
+
+## Version 0.1.12
+
+The GPU midpoint shader uses a logistic blend trained on 100 synthetic scenes, plus a confidence gate. Across eligible sampled pixels in 48 held-out scenes with simulated block vectors, mean squared error changed from 0.00780 to 0.00546. This measures the blend stage only. Live PS5 image quality and sustained Android throughput remain unverified.
