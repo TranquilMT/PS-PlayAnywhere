@@ -1,5 +1,5 @@
 diff --git a/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt b/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
-index 6465527..6f7ddc0 100644
+index 6465527..309016a 100644
 --- a/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
 +++ b/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
 @@ -21,2 +21,6 @@ import com.metallic.chiaki.common.ext.viewModelFactory
@@ -17,7 +17,7 @@ index 6465527..6f7ddc0 100644
 +			intro.postDelayed({ (intro.parent as? android.view.ViewGroup)?.removeView(intro) }, 5000L)
 +		}
  
-@@ -183,6 +192,51 @@ class MainActivity : AppCompatActivity()
+@@ -183,6 +192,53 @@ class MainActivity : AppCompatActivity()
  				val connectInfo = ConnectInfo(host.isPS5, host.host, registeredHost.rpRegistKey, registeredHost.rpKey, Preferences(this).videoProfile)
 -				Intent(this, StreamActivity::class.java).let {
 -					it.putExtra(StreamActivity.EXTRA_CONNECT_INFO, connectInfo)
@@ -29,6 +29,7 @@ index 6465527..6f7ddc0 100644
 +				val qualityKey = "quality_" + registeredHost.id
 +				setup.qualityGroup.visibility = if (host.isPS5) android.view.View.VISIBLE else android.view.View.GONE
 +				setup.qualityGroup.check(when (defaults.getInt(qualityKey, 0)) {
++					540 -> R.id.quality540
 +					720 -> R.id.quality720
 +					1080 -> R.id.quality1080
 +					else -> R.id.qualityDefault
@@ -36,6 +37,7 @@ index 6465527..6f7ddc0 100644
 +				fun selectedProfile(): ConnectVideoProfile {
 +					val original = connectInfo.videoProfile
 +					val resolution = when (setup.qualityGroup.checkedRadioButtonId) {
++						R.id.quality540 -> VideoResolutionPreset.RES_540P
 +						R.id.quality720 -> VideoResolutionPreset.RES_720P
 +						R.id.quality1080 -> VideoResolutionPreset.RES_1080P
 +						else -> return original
@@ -48,7 +50,7 @@ index 6465527..6f7ddc0 100644
 +					val profile = selectedProfile()
 +					val rate = if (setup.frameGenerationSwitch.isChecked) 30 else profile.maxFPS
 +					setup.sourceSummary.text = getString(R.string.stream_requested_profile,
-+						profile.width, profile.height, rate, profile.bitrate / 1000.0)
++						profile.width, profile.height, rate, profile.bitrate / 1000.0, profile.bitrate * 0.00045)
  				}
 +				setup.qualityGroup.setOnCheckedChangeListener { _, _ -> refreshSummary() }
 +				setup.frameGenerationSwitch.setOnCheckedChangeListener { _, _ -> refreshSummary() }
@@ -674,10 +676,10 @@ index 77a3165..8bd6f1f 100644
              <com.google.android.material.switchmaterial.SwitchMaterial
 diff --git a/android/app/src/main/res/layout/dialog_stream_setup.xml b/android/app/src/main/res/layout/dialog_stream_setup.xml
 new file mode 100644
-index 0000000..c1ef27c
+index 0000000..0e06508
 --- /dev/null
 +++ b/android/app/src/main/res/layout/dialog_stream_setup.xml
-@@ -0,0 +1,47 @@
+@@ -0,0 +1,48 @@
 +<?xml version="1.0" encoding="utf-8"?>
 +<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
 +    android:layout_width="match_parent"
@@ -693,6 +695,7 @@ index 0000000..c1ef27c
 +    <RadioGroup android:id="@+id/qualityGroup" android:orientation="vertical"
 +        android:layout_width="match_parent" android:layout_height="wrap_content">
 +        <RadioButton android:id="@+id/qualityDefault" android:text="@string/quality_settings" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" />
++        <RadioButton android:id="@+id/quality540" android:text="@string/quality_540" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" />
 +        <RadioButton android:id="@+id/quality720" android:text="@string/quality_720" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" />
 +        <RadioButton android:id="@+id/quality1080" android:text="@string/quality_1080" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="48dp" />
 +    </RadioGroup>
@@ -872,10 +875,10 @@ index 9ee2e9b..c6b696d 100644
      <dimen name="floating_action_button_speed_dial_anim_offset">48dp</dimen>
 diff --git a/android/app/src/main/res/values/strings_display_only.xml b/android/app/src/main/res/values/strings_display_only.xml
 new file mode 100644
-index 0000000..d9d71c6
+index 0000000..23ec8e3
 --- /dev/null
 +++ b/android/app/src/main/res/values/strings_display_only.xml
-@@ -0,0 +1,13 @@
+@@ -0,0 +1,14 @@
 +<resources>
 +    <string name="stream_display_only">Display only</string>
 +    <string name="stream_frame_generation">30 → 60 frame generation (beta)</string>
@@ -885,7 +888,8 @@ index 0000000..d9d71c6
 +    <string name="stream_setup_frame_note">The phone’s GPU estimates motion between 30 FPS stream frames to draw a new frame halfway between them.</string>
 +    <string name="stream_setup_display_note">Watch on your phone with touch controls and phone controller input disabled.</string>
 +    <string name="quality_settings">Use my video settings</string>
++    <string name="quality_540">540p · Data saver</string>
 +    <string name="quality_720">720p · Lower bandwidth</string>
 +    <string name="quality_1080">1080p · Higher detail</string>
-+    <string name="stream_requested_profile">Requested stream · %1$d × %2$d · %3$d FPS · %4$.1f Mbps</string>
++    <string name="stream_requested_profile">Requested stream · %1$d × %2$d · %3$d FPS · %4$.1f Mbps\nEstimated video data at target bitrate · %5$.1f GB/hour</string>
 +</resources>

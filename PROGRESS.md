@@ -142,3 +142,7 @@ A three-stage GPU motion search refines midpoint synthesis. The Android shaders 
 ## Version 0.1.9
 
 Added pre-stream PS5 quality presets, per-console resolution choice and a live requested-profile summary. Midpoint synthesis skips unnecessary sampling on static and zero-confidence regions. Physical streaming and GPU performance measurements remain open.
+
+## Version 0.1.10
+
+540p Data saver and estimated hourly video data are available in PS5 streaming setup. The expected signing certificate SHA-256 is 2bb881c791a9fdb5c5ad212336818df9817b7daefa957c8c729768e299663407. Keep the keystore and its password private.

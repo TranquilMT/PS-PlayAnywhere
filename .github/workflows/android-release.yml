@@ -44,28 +44,25 @@ jobs:
           signer="$ANDROID_HOME/build-tools/35.0.0/apksigner"
           sha256sum --check SHA256SUMS.txt
           "$signer" sign --ks "$key" --ks-key-alias "$KEY_ALIAS" --ks-pass env:STORE_PASSWORD --key-pass env:KEY_PASSWORD --out signed.apk "$apk"
-          expected=33472559109d7d74c7566402781cc6a9a92e963f465b66832644c3828b1d7c5e
+          expected=2bb881c791a9fdb5c5ad212336818df9817b7daefa957c8c729768e299663407
           certs=$("$signer" verify --print-certs signed.apk)
           actual=$(sed -n 's/^Signer #[0-9]* certificate SHA-256 digest: //p' <<< "$certs")
-          [[ "$actual" == "$expected" ]] || { echo "Release signer differs from v0.1.9"; exit 1; }
+          [[ "$actual" == "$expected" ]] || { echo "Release signer differs from v0.1.10"; exit 1; }
       - name: Publish latest debug release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           cd artifact
           sha256sum --check SHA256SUMS.txt
-          grep -F "versionCode='10' versionName='0.1.9'" apk-badging.txt
-          cp signed.apk PS-PlayAnywhere-0.1.9-debug.apk
-          sha256sum PS-PlayAnywhere-0.1.9-debug.apk > PS-PlayAnywhere-0.1.9-SHA256.txt
+          grep -F "versionCode='11' versionName='0.1.10'" apk-badging.txt
+          cp signed.apk PS-PlayAnywhere-0.1.10-debug.apk
+          sha256sum PS-PlayAnywhere-0.1.10-debug.apk > PS-PlayAnywhere-0.1.10-SHA256.txt
           cat > release-notes.md <<'NOTES'
           Android debug build for physical testing.
 
-          - Choose 720p, 1080p or saved video settings before starting a PS5 stream. Each paired PS5 remembers its own resolution choice.
-          - Preview the requested source resolution, FPS and target bitrate before connecting. The source FPS updates when frame generation is toggled.
-          - The GPU midpoint shader skips motion sampling for unchanged pixels and skips warping where motion confidence is zero. Live GPU performance still needs phone testing.
-
-          The release workflow requires the signing certificate used for v0.1.9.
+          - Adds a 540p Data saver preset and an estimated hourly video data figure for each target bitrate.
+          - Starts a new persistent signing identity. Back up existing settings before uninstalling a previous debug version. Future updates require the same certificate.
           NOTES
-          gh release create v0.1.9 PS-PlayAnywhere-0.1.9-debug.apk PS-PlayAnywhere-0.1.9-SHA256.txt \
+          gh release create v0.1.10 PS-PlayAnywhere-0.1.10-debug.apk PS-PlayAnywhere-0.1.10-SHA256.txt \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "PS PlayAnywhere 0.1.9 (Android debug)" --notes-file release-notes.md --latest
+            --title "PS PlayAnywhere 0.1.10 (Android debug)" --notes-file release-notes.md --latest
