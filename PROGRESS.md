@@ -3,15 +3,15 @@
 Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMAP.md](ROADMAP.md) for the full 12-phase task breakdown.
 
 ## Current state
-**Active:** Phase 0 — Native baseline build.
-**Works:** GitHub repository, project documentation, committed GitHub Actions workflow definition.
-**Not verified:** CI build success, APK installation, console pairing, video/audio, controllers, PSN authentication, remote connection, frame interpolation.
-**Blockers:** Run #4 passed the `protoc` check and reached native compilation, where nanopb failed to import `google.protobuf`. CI now installs the Python runtime for the interpreter used by CMake and tests Takion code generation before Gradle. A successful APK build, resolved dependency audit and physical device tests remain pending.
+**Active:** Phase 0 — Baseline, licensing and reproducibility.
+**Verified:** The pinned upstream Chiaki source compiles on GitHub Actions. The archived debug APK's signature, ARM64 libraries and SHA-256 were verified independently after download.
+**Open in Phase 0:** Third-party license audit and comparison of independent builds. Phase 1 starts after these checklist items are complete.
+**Release:** The signed PS PlayAnywhere APK is a Phase 10 deliverable. Device installation, console pairing, PSN and remote play have yet to be tested.
 
 ## Phase gates
 | Phase | Name | Status | Evidence / next gate |
 | --- | --- | --- | --- |
-| 0 | Baseline, licensing and reproducibility | IN PROGRESS | Takion code generation passed locally. CI still needs to verify APK build, debug signature, ARM64 packaging and checksum. |
+| 0 | Baseline, licensing and reproducibility | IN PROGRESS | Run #5 passed. Finish the dependency license audit and independent rebuild comparison. |
 | 1 | Android source integration | NOT STARTED | Branded native APK installs |
 | 2 | Local console streaming | NOT STARTED | 15-minute gameplay test |
 | 3 | PSN login and discovery | NOT STARTED | Real-account authentication test |
@@ -32,6 +32,12 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - Native source is compiled through root `CMakeLists.txt`; upstream has git submodules.
 - Upstream COPYING contains GNU AGPL v3.
 - Remote PSN setup docs state IPv4-only and warn that some NAT types cannot hole punch.
+
+## Verified CI run #5
+- [Run #5](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45005001825), job `137154496486`, built upstream Chiaki `43728af2e639fecb8a7af1cd68c29820a40de973`.
+- The Protocol Buffers preflight, native Gradle build, APK checks and artifact upload passed. The upstream debug package was `com.metallic.chiaki` version `1.10.1` (version code `12`).
+- SHA-256 of the APK: `4d9ec2f8f5e641cbc8226fd80689834a03e4f657d9541890a7d612656f6501e0`. The downloaded APK matched this digest, passed APK Signature Scheme v2 verification and contained ARM64 builds of Chiaki JNI, Oboe and the C++ runtime.
+- [Run #6](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45005296420) passed the Gradle distribution checksum check and is rebuilding the same upstream revision with the runtime dependency report enabled.
 
 ## Verified CI run #4
 - [Run #4](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45004670277), job `137153477589`, built commit `c0dc35d`.
@@ -58,9 +64,8 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - 2026-11-22: Expanded roadmap to 12 gated engineering phases and updated evidence ledger.
 
 ## Next actions (strict order)
-1. Verify the next baseline run passes the Takion generator step, and inspect any subsequent native build failure.
-2. Record the verified APK's package, ABI, signature and SHA-256 after CI produces it.
-3. Finish third-party licensing review, then integrate native source into PS PlayAnywhere.
-4. Begin physical-device local pairing tests before claiming remote support.
+1. Check run #6 and audit the resolved third-party dependencies against the packaged files.
+2. Compare independent upstream builds and record any differences between their APK contents and signatures.
+3. Complete Phase 0 before starting Android source integration in Phase 1.
 
 Do not mark a phase complete based solely on plans, source presence or an unexecuted CI workflow.

@@ -5,7 +5,7 @@
 - Repository: https://github.com/chiaki-ng/chiaki-ng
 - Pinned revision: `43728af2e639fecb8a7af1cd68c29820a40de973`
 - Revision link: https://github.com/chiaki-ng/chiaki-ng/commit/43728af2e639fecb8a7af1cd68c29820a40de973
-- Main license: GNU Affero General Public License, version 3 (`COPYING`).
+- Main license: GNU Affero General Public License, version 3 (`COPYING`). Upstream files marked `LicenseRef-AGPL-3.0-only-OpenSSL` refer to the [additional OpenSSL permission](https://github.com/chiaki-ng/chiaki-ng/blob/43728af2e639fecb8a7af1cd68c29820a40de973/LICENSES/AGPL-3.0-only-OpenSSL.txt).
 - Android frontend: `android/`, with native CMake project in the root.
 
 ## Build dependencies observed
@@ -31,10 +31,20 @@ These entries come from the pinned source, Android Gradle catalog and CMake file
 | OpenSSL | `1.1.1w` with an upstream SHA-256 pin | Native TLS and cryptography | [LICENSE](https://github.com/openssl/openssl/blob/OpenSSL_1_1_1w/LICENSE), OpenSSL and original SSLeay terms |
 | json-c | `0.17-20230812` tag archive | Native JSON | [COPYING](https://github.com/json-c/json-c/blob/json-c-0.17-20230812/COPYING), MIT |
 | miniupnpc | `2.2.8` tag archive | Native UPnP client | [LICENSE](https://github.com/miniupnp/miniupnp/blob/miniupnpc_2_2_8/LICENSE), BSD 3-Clause |
+| LLVM C++ runtime | Android NDK r28c, `28.2.13676358` | `libc++_shared.so` | NDK `NOTICE.toolchain` includes libc++ and libc++abi notices. The packaged ARM64 binary matched the NDK copy after stripping unneeded symbols. |
 
 The direct Gradle runtime declarations also include AndroidX Activity, AppCompat, Core, ConstraintLayout, RecyclerView, Preference, Lifecycle and Room, Material Components, Kotlin coroutines and Moshi. Record each resolved runtime component, its source version and notices before distributing a branded APK. The Gradle/KSP compiler plugins, host `protoc` and Python Protobuf are build tools. The baseline config disables desktop Qt, FFmpeg, system Opus and tests. Android decodes Opus through MediaCodec.
 
-The release audit remains open for transitive Gradle dependencies, bundled NDK runtimes, archive hashes for json-c and miniupnpc, and review of the OpenSSL terms alongside the app's license and linkage.
+Preserve the OpenSSL license and SSLeay notices alongside the upstream permission. The permission text calls for corresponding source to include the used OpenSSL source.
+
+The following SHA-256 values were computed from the archives at the URLs used by the pinned upstream CMake files. Upstream CMake currently fetches these two archives by tag URL.
+
+| Archive | Observed SHA-256 |
+| --- | --- |
+| json-c `json-c-0.17-20230812.tar.gz` | `024d302a3aadcbf9f78735320a6d5aedf8b77876c8ac8bbb95081ca55054c7eb` |
+| miniupnpc `miniupnpc_2_2_8.tar.gz` | `3d0d49f761f09c1321ceb663d1b008825361d7bd242640c60ae467e82642502a` |
+
+The audit remains open for transitive Gradle dependencies. Enforcing the two archive checksums at build time remains open.
 
 ## Android integration notes
 
@@ -49,8 +59,8 @@ The first workflow builds upstream source without modifying it. It does **not** 
 - [x] Assert checked-out revision matches expected commit
 - [x] Record commit in artifact
 - [x] Generate and require non-empty SHA256SUMS.txt after build
-- [ ] Verify GitHub Actions successful run
-- [ ] Record APK SHA-256 from a real run
+- [x] Verify GitHub Actions successful run ([run #5](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45005001825))
+- [x] Record and independently verify the APK SHA-256 ([PROGRESS.md](../PROGRESS.md))
 - [ ] Verify full dependency licenses and hashes
 - [ ] Rebuild twice and compare reproducibility characteristics
 - [ ] Sign and publish a compliant PS PlayAnywhere release

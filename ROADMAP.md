@@ -8,11 +8,14 @@ Each phase has an exit gate. A feature is complete only when build output, test 
 - [x] Identify upstream AGPL-3.0 license and required submodules
 - [x] Add initial native baseline GitHub Actions build workflow
 - [x] Verify first CI result and capture failure logs (runs #2–4 diagnosed in PROGRESS.md)
-- [ ] Pass native APK packaging, signature and ARM64 checks in CI
+- [x] Pass upstream debug packaging, signature and ARM64 checks in CI ([run #5](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45005001825))
 - [x] Pin upstream to a specific source commit and assert its identity in CI (build verification still pending)
-- [ ] Complete third-party license audit (initial source/license inventory recorded in docs/UPSTREAM.md)
-- [ ] Validate reproducible release environment (pinned source and toolchain configuration committed; successful run pending)
-**Exit:** Unmodified upstream Android debug APK compiles in CI with recorded commit and SHA-256.
+- [ ] Complete third-party license audit (see [UPSTREAM.md](docs/UPSTREAM.md))
+- [ ] Validate reproducible release environment (compare independent upstream builds and document differences)
+
+The Phase 0 build artifact is an upstream Chiaki debug reference used to verify the toolchain. The signed PS PlayAnywhere release APK is tracked in Phase 10.
+
+**Exit:** Verify the pinned upstream Android build and finish the Phase 0 license and reproducibility checks before starting Phase 1.
 
 ## 1. Android source integration
 - [ ] Choose fork, vendored source or pinned submodule integration
