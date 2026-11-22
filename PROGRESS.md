@@ -45,6 +45,7 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - CMake enforces SHA-256 for json-c and miniupnpc alongside the original OpenSSL pin. Tests accepted both authentic archives and rejected altered copies.
 - The committed Gradle lock covers 844 artifacts across 407 coordinates. Both local debug and unsigned release tasks passed strict verification. A deliberately changed Android Gradle Plugin digest stopped Gradle at classpath verification.
 - [Run #8](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45008670005) exposed two missing JUnit BOM metadata files. [Run #9](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45008905556) exposed a missing coroutines BOM POM. Their Maven Central SHA-256 values were independently checked and added.
+- The reference job in [run #10](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45009204264) passed with the completed lock on a clean GitHub runner. Its downloaded APK matched the recorded SHA-256, and its 1,061 payload entries matched the previously verified upstream baseline. The repeat job received HTTP 403 while downloading Gradle.
 
 ## Verified CI run #7
 
