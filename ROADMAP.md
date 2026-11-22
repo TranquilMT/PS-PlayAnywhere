@@ -8,9 +8,9 @@ Each phase has an exit gate. A feature is complete only when build output, test 
 - [x] Identify upstream AGPL-3.0 license and required submodules
 - [x] Add initial native baseline GitHub Actions build workflow
 - [ ] Verify first CI result and capture failure logs
-- [ ] Pin upstream to a specific verified commit
-- [ ] Record third-party licenses and source availability
-- [ ] Create repeatable release build environment
+- [x] Pin upstream to a specific source commit and assert its identity in CI (build verification still pending)
+- [ ] Complete third-party license audit (initial source/license inventory recorded in docs/UPSTREAM.md)
+- [ ] Validate reproducible release environment (pinned source and toolchain configuration committed; successful run pending)
 **Exit:** Unmodified upstream Android debug APK compiles in CI with recorded commit and SHA-256.
 
 ## 1. Android source integration
