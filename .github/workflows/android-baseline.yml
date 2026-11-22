@@ -29,12 +29,22 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
-      - name: Android SDK packages
-        uses: android-actions/setup-android@v3
-      - name: Install native toolchain
+      - name: Install native toolchain using runner SDK
+        shell: bash
         run: |
-          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "cmake;3.22.1" "ndk;28.2.13676358"
-          yes | sdkmanager --licenses || true
+          set -euo pipefail
+          export ANDROID_HOME="${ANDROID_HOME:-/usr/local/lib/android/sdk}"
+          export ANDROID_SDK_ROOT="$ANDROID_HOME"
+          SDKMANAGER="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          if [[ ! -x "$SDKMANAGER" ]]; then
+            SDKMANAGER="$(find "$ANDROID_HOME/cmdline-tools" -path '*/bin/sdkmanager' -type f | sort -V | tail -1)"
+          fi
+          test -x "$SDKMANAGER"
+          printf 'y\\n' | "$SDKMANAGER" --licenses > /tmp/android-licenses.log || true
+          "$SDKMANAGER" --install "platforms;android-35" "build-tools;35.0.0" "cmake;3.22.1" "ndk;28.2.13676358"
+          echo "ANDROID_HOME=$ANDROID_HOME" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$ANDROID_HOME" >> "$GITHUB_ENV"
+          "$SDKMANAGER" --list_installed
       - name: Validate Gradle wrapper checksum metadata
         run: |
           test -f upstream/android/gradle/wrapper/gradle-wrapper.jar
