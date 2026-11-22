@@ -35,6 +35,8 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 
 ## Phase 1 Android integration
 
+- A physical Android 16 launch of 0.1.0 crashed. Source inspection found two relative CoordinatorLayout behavior names that resolve against the branded package ID. Version 0.1.1 uses fully qualified Chiaki class names. The local build and all 19 unit tests passed, and APK inspection confirmed both packaged references. Physical retest is pending.
+
 - Added **Settings → Connection help** from the uploaded Remote Play guide. The app gives pairing, rest-mode and off-network troubleshooting guidance and classifies an optional router WAN IPv4 locally. All 19 unit tests passed locally, including the new address boundary cases. The [clean CI build and test run](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45010228669) passed. The downloaded APK matched its recorded SHA-256 `9db912e9ddc877fb1e9cc1ad4b23296539c6945d8d89932366ffd2ce7169dc24`. All 12 packaged native libraries matched the prior integration build byte for byte.
 
 - Verified a fresh recursive checkout of `engine/chiaki` at the audited commit with the eight matching nested gitlinks and both upstream license files.

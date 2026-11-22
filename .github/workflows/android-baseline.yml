@@ -136,6 +136,9 @@ jobs:
         if: matrix.sample == 'integration'
         run: |
           grep -F "application-label:'PS PlayAnywhere'" apk-badging.txt
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump xmltree "$SOURCE_DIR/android/app/build/outputs/apk/debug/app-debug.apk" res/layout/activity_main.xml > launcher-layout.txt
+          grep -F '"com.metallic.chiaki.main.FloatingActionButtonBackgroundBehavior"' launcher-layout.txt
+          grep -F '"com.metallic.chiaki.main.FloatingActionButtonSpeedDialBehavior"' launcher-layout.txt
           bash android/verify-arm64-alignment.sh "$SOURCE_DIR/android/app/build/outputs/apk/debug/app-debug.apk"
       - name: Upload APK and provenance
         if: success()

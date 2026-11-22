@@ -10,8 +10,8 @@ index 61618b5..a33ede0 100644
          targetSdk 35
 -        versionCode 12
 -        versionName chiakiVersion
-+        versionCode 1
-+        versionName "0.1.0"
++        versionCode 2
++        versionName "0.1.1"
          externalNativeBuild {
 diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
 index a9594cb..9e95485 100644
@@ -90,3 +90,17 @@ index 6ab2beb..214143f 100644
 -    <string name="app_name">Chiaki</string>
 +    <string name="app_name">PS PlayAnywhere</string>
      <string name="title_main">Chiaki 千秋</string>
+diff --git a/android/app/src/main/res/layout/activity_main.xml b/android/app/src/main/res/layout/activity_main.xml
+index e16f368..7f33cfc 100644
+--- a/android/app/src/main/res/layout/activity_main.xml
++++ b/android/app/src/main/res/layout/activity_main.xml
+@@ -59,3 +59,3 @@
+         android:clickable="true"
+-        app:layout_behavior=".main.FloatingActionButtonBackgroundBehavior"/>
++        app:layout_behavior="com.metallic.chiaki.main.FloatingActionButtonBackgroundBehavior"/>
+ 
+@@ -71,3 +71,3 @@
+         android:layout_width="wrap_content"
+-        app:layout_behavior=".main.FloatingActionButtonSpeedDialBehavior"
++        app:layout_behavior="com.metallic.chiaki.main.FloatingActionButtonSpeedDialBehavior"
+         android:gravity="right"
