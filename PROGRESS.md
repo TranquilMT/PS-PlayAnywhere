@@ -100,6 +100,8 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 
 ## PS5 registration
 
+- 0.1.3 uses the same visible button style for the sign-in and paste actions. The change addresses the missing paste label reported on Android 16. Device retest is pending.
+
 - 0.1.2 adds PlayStation sign-in from the registration screen, validates the pasted Sony return link against the current attempt, and fills the Account ID without the public lookup site. Live PSN sign-in and PS5 pairing still need a device test.
 
 ## Physical device retest

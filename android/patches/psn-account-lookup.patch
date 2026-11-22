@@ -181,10 +181,10 @@ index ab7253f..49119c8 100644
 +
  	val ps4Version = MutableLiveData<ConsoleVersion>(ConsoleVersion.PS5)
 diff --git a/android/app/src/main/res/layout/activity_regist.xml b/android/app/src/main/res/layout/activity_regist.xml
-index d9cf078..72f80fd 100644
+index d9cf078..0b074f7 100644
 --- a/android/app/src/main/res/layout/activity_regist.xml
 +++ b/android/app/src/main/res/layout/activity_regist.xml
-@@ -132,2 +132,17 @@
+@@ -132,2 +132,16 @@
  
 +            <com.google.android.material.button.MaterialButton
 +                android:id="@+id/psnSignInButton"
@@ -195,14 +195,13 @@ index d9cf078..72f80fd 100644
 +
 +            <com.google.android.material.button.MaterialButton
 +                android:id="@+id/psnPasteButton"
-+                style="@style/Widget.MaterialComponents.Button.TextButton"
 +                android:layout_width="match_parent"
 +                android:layout_height="wrap_content"
 +                android:text="@string/psn_paste_redirect"
 +                app:layout_constraintTop_toBottomOf="@id/psnSignInButton" />
 +
              <com.google.android.material.textfield.TextInputLayout
-@@ -138,3 +153,3 @@
+@@ -138,3 +152,3 @@
                  app:startIconDrawable="@drawable/ic_psn_id"
 -                app:layout_constraintTop_toBottomOf="@id/psnAccountIdHelpURLTextView"
 +                app:layout_constraintTop_toBottomOf="@id/psnPasteButton"
