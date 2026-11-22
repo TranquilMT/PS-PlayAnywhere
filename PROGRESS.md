@@ -119,6 +119,8 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 
 - Paired consoles now open a Streaming options dialog before connecting. It sets Frame generation and Display only for the upcoming session. The full touch controller dimensions were reduced by about 10%. Physical layout and streaming checks are pending.
 
+- Version 0.1.6 updates the Android launch screen and launcher icon and uses PS PlayAnywhere branding on the console screen. Physical appearance checks are pending.
+
 ## Off-network play
 
 - Documented 5G play via a home LAN VPN and a manual console entry linked to an existing pairing. End-to-end 5G testing and automatic PSN remote connection remain open.

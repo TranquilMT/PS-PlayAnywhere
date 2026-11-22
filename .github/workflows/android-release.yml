@@ -31,18 +31,20 @@ jobs:
         run: |
           cd artifact
           sha256sum --check SHA256SUMS.txt
-          grep -F "versionCode='6' versionName='0.1.5'" apk-badging.txt
-          cp engine/chiaki/android/app/build/outputs/apk/debug/app-debug.apk PS-PlayAnywhere-0.1.5-debug.apk
-          sha256sum PS-PlayAnywhere-0.1.5-debug.apk > PS-PlayAnywhere-0.1.5-SHA256.txt
+          grep -F "versionCode='7' versionName='0.1.6'" apk-badging.txt
+          cp engine/chiaki/android/app/build/outputs/apk/debug/app-debug.apk PS-PlayAnywhere-0.1.6-debug.apk
+          sha256sum PS-PlayAnywhere-0.1.6-debug.apk > PS-PlayAnywhere-0.1.6-SHA256.txt
           cat > release-notes.md <<'NOTES'
           Android debug build for physical testing.
 
-          - Adds experimental 30 → 60 FPS frame generation on the phone. Set the Remote Play stream to 30 FPS and turn on frame generation from the in-stream menu. The switch defaults to off and changing it reconnects the stream.
-          - Adds Display only mode, which hides the touch controls and stops sending input from the phone while streaming continues.
-          - Android build and unit tests passed in CI. Frame pacing, latency, visual artifacts and direct DualSense play still need a physical PS5 and phone test.
+          - Adds a refreshed Android launch screen and launcher icon, with PS PlayAnywhere branding on the console screen.
+          - Shows Streaming options when you tap a paired PS5. Set 30 → 60 frame generation (beta) and Display only independently, then tap Start stream. Frame generation is intended for a 30 FPS source.
+          - Reduces the size of the on-screen controller by approximately 10%.
+          - Adds in-app instructions for testing 5G with a home VPN and existing PS5 pairing. Automatic PSN remote connection remains pending.
+          - Android build and unit tests passed in CI. The new layout, frame pacing, and 5G streaming still need physical device testing.
 
           Android requires matching signing certificates for an in-place update. This CI debug APK may have a different certificate from an earlier build. Uninstalling an existing copy removes its local data.
           NOTES
-          gh release create v0.1.5 PS-PlayAnywhere-0.1.5-debug.apk PS-PlayAnywhere-0.1.5-SHA256.txt \
+          gh release create v0.1.6 PS-PlayAnywhere-0.1.6-debug.apk PS-PlayAnywhere-0.1.6-SHA256.txt \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "PS PlayAnywhere 0.1.5 (Android debug)" --notes-file release-notes.md --latest
+            --title "PS PlayAnywhere 0.1.6 (Android debug)" --notes-file release-notes.md --latest
