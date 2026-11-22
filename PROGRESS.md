@@ -14,14 +14,14 @@ Last updated: 2026-11-22
 - [x] Identified primary upstream: https://github.com/chiaki-ng/chiaki-ng
 - [x] Confirmed upstream source contains an android/ frontend and lib/ protocol implementation (per contributor guide)
 - [x] Located upstream remote PSN documentation: https://github.com/chiaki-ng/chiaki-ng/blob/main/docs/setup/remoteconnection.md
-- [ ] Audit Android frontend and build requirements at pinned upstream commit
-- [ ] Audit license and all native dependencies before import
+- [x] Inspect upstream Android Gradle build requirements (Java 17, compile SDK 35, NDK 28.2.13676358, CMake 3.22.1); upstream commit still needs pinning
+- [ ] Audit all native dependencies before import (upstream COPYING is AGPL-3.0)
 - [ ] Select pinned upstream revision
-- [ ] Produce first reproducible native Android build
+- [ ] Produce first reproducible native Android build (GitHub Actions workflow added, execution unverified)
 
-**Works:** GitHub repository and documentation only.
+**Works:** GitHub repository, documentation, and committed baseline Android CI workflow definition.
 **Does not work / not verified:** Native app, PS5 pairing, video/audio streaming, PSN login, off-network connection, controllers, interpolation, APK.
-**Current blocker:** Android upstream source and build toolchain have not been integrated and validated.
+**Current blocker:** First CI build has not been verified. Workflow currently checks out upstream main; pin to tested commit before release.
 
 ## Phase 1 — Native streaming
 - [ ] Import pinned upstream with license notices
@@ -57,4 +57,5 @@ Last updated: 2026-11-22
 - [ ] Device tests and release notes
 
 ## Evidence log
+- 2026-11-22: Inspected upstream android/app/build.gradle and COPYING via GitHub connector; confirmed native Android Gradle/CMake build and AGPL-3.0 license. Added .github/workflows/android-baseline.yml to compile upstream debug APK and upload checksum/commit provenance. No successful build claimed.
 - 2026-11-22: Created PROGRESS.md. Verified repository and identified upstream architecture and PSN documentation. No native code or APK shipped.
