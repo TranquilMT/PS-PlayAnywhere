@@ -1,0 +1,59 @@
+name: Android native baseline (upstream Chiaki)
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/android-baseline.yml'
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - name: Checkout PS PlayAnywhere
+        uses: actions/checkout@v4
+      - name: Checkout upstream Chiaki native client
+        uses: actions/checkout@v4
+        with:
+          repository: chiaki-ng/chiaki-ng
+          path: upstream
+          submodules: recursive
+      - name: Record upstream commit
+        run: git -C upstream rev-parse HEAD | tee upstream-commit.txt
+      - name: Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Android SDK packages
+        uses: android-actions/setup-android@v3
+      - name: Install native toolchain
+        run: |
+          sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "cmake;3.22.1" "ndk;28.2.13676358"
+          yes | sdkmanager --licenses || true
+      - name: Build upstream Android debug APK
+        working-directory: upstream/android
+        run: |
+          chmod +x gradlew
+          ./gradlew :app:assembleDebug --stacktrace --no-daemon
+      - name: SHA-256 checksum
+        if: success()
+        run: |
+          find upstream/android/app/build/outputs/apk/debug -name '*.apk' -exec sha256sum {} \; > SHA256SUMS.txt
+      - name: Upload APK and provenance
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: chiaki-android-baseline-debug
+          path: |
+            upstream/android/app/build/outputs/apk/debug/*.apk
+            upstream-commit.txt
+            SHA256SUMS.txt
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-baseline-build-diagnostics
+          path: |
+            upstream/android/app/build/reports/
+            upstream/android/.gradle/
+          if-no-files-found: ignore
