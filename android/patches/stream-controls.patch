@@ -39,10 +39,10 @@ index dd32a40..68f141e 100644
  	fun attachToSurfaceView(surfaceView: SurfaceView)
 diff --git a/android/app/src/main/java/com/metallic/chiaki/stream/InterpolationView.kt b/android/app/src/main/java/com/metallic/chiaki/stream/InterpolationView.kt
 new file mode 100644
-index 0000000..9df5e51
+index 0000000..3e2326f
 --- /dev/null
 +++ b/android/app/src/main/java/com/metallic/chiaki/stream/InterpolationView.kt
-@@ -0,0 +1,287 @@
+@@ -0,0 +1,289 @@
 +// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
 +package com.metallic.chiaki.stream
 +
@@ -54,7 +54,7 @@ index 0000000..9df5e51
 +import android.view.Surface
 +import java.nio.ByteBuffer
 +import java.nio.ByteOrder
-+import java.util.concurrent.atomic.AtomicBoolean
++import java.util.concurrent.atomic.AtomicLong
 +import javax.microedition.khronos.egl.EGLConfig
 +import javax.microedition.khronos.opengles.GL10
 +
@@ -81,7 +81,7 @@ index 0000000..9df5e51
 +        private val onSurface: (Surface) -> Unit,
 +        private val onFailure: () -> Unit
 +    ) : GLSurfaceView.Renderer {
-+        private val pending = AtomicBoolean()
++        private val pendingArrival = AtomicLong()
 +        private val quad = ByteBuffer.allocateDirect(32).order(ByteOrder.nativeOrder())
 +            .asFloatBuffer().put(floatArrayOf(-1f, -1f, 1f, -1f, -1f, 1f, 1f, 1f)).apply { position(0) }
 +        private val textures = IntArray(4)
@@ -96,7 +96,7 @@ index 0000000..9df5e51
 +        private var present = 0
 +        private var width = 0
 +        private var height = 0
-+        private var last = 0L
++        private var last = Long.MIN_VALUE
 +        private var arrival = 0L
 +        private var interval = 0L
 +        private var newest = 0
@@ -121,7 +121,7 @@ index 0000000..9df5e51
 +                check(glGetError() == GL_NO_ERROR)
 +                val texture = SurfaceTexture(textures[3]).apply {
 +                    setDefaultBufferSize(videoWidth, videoHeight)
-+                    setOnFrameAvailableListener { pending.set(true) }
++                    setOnFrameAvailableListener { pendingArrival.set(System.nanoTime()) }
 +                }
 +                camera = texture
 +                val surface = Surface(texture)
@@ -141,13 +141,15 @@ index 0000000..9df5e51
 +        override fun onDrawFrame(gl: GL10?) {
 +            val texture = camera ?: return
 +            try {
-+                if (pending.getAndSet(false)) {
++                val frameArrival = pendingArrival.getAndSet(0L)
++                if (frameArrival != 0L) {
 +                    texture.updateTexImage()
 +                    val timestamp = texture.timestamp
 +                    if (timestamp != last) {
-+                        arrival = System.nanoTime()
-+                        interval = timestamp - last
-+                        interpolate = last != 0L && interval in 26_000_000L..43_000_000L
++                        // The decoder uses sequence-based presentation timestamps.
++                        interval = frameArrival - arrival
++                        arrival = frameArrival
++                        interpolate = last != Long.MIN_VALUE && interval in 26_000_000L..43_000_000L
 +                        last = timestamp
 +                        newest = 1 - newest
 +                        texture.getTransformMatrix(transform)
@@ -167,7 +169,7 @@ index 0000000..9df5e51
 +                }
 +                glBindFramebuffer(GL_FRAMEBUFFER, 0)
 +                glViewport(0, 0, width, height)
-+                if (last == 0L) {
++                if (last == Long.MIN_VALUE) {
 +                    glClear(GL_COLOR_BUFFER_BIT)
 +                    return
 +                }
@@ -200,8 +202,8 @@ index 0000000..9df5e51
 +            input = null
 +            camera?.release()
 +            camera = null
-+            pending.set(false)
-+            last = 0L
++            pendingArrival.set(0L)
++            last = Long.MIN_VALUE
 +            glDeleteTextures(4, textures, 0)
 +            glDeleteFramebuffers(1, fbo, 0)
 +            for (p in intArrayOf(copy, estimate, present)) if (p != 0) glDeleteProgram(p)
