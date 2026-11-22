@@ -3,16 +3,16 @@
 Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMAP.md](ROADMAP.md) for the full 12-phase task breakdown.
 
 ## Current state
-**Active:** Phase 0 is complete. Phase 1 source integration is next.
-**Verified:** The pinned upstream Chiaki source compiles locally and on GitHub Actions. Two clean CI builds produced identical contents for all 1,061 APK entries. Debug signing certificates differ across runners.
-**Dependency enforcement:** CMake verifies native archive SHA-256 values and Gradle rejects mismatched Maven artifacts. Local debug and unsigned release builds passed under strict verification.
+**Active:** Phase 1 — Android source integration.
+**Verified:** Phase 0 dependency checksum enforcement, pinned source checkout, branded ARM64 debug build, and 16 KB APK and ARM64 ELF alignment.
+**Open in Phase 1:** Install and launch the branded debug app on physical Android 16 hardware.
 **Release:** The signed PS PlayAnywhere APK is a Phase 10 deliverable. Device installation, console pairing, PSN and remote play have yet to be tested.
 
 ## Phase gates
 | Phase | Name | Status | Evidence / next gate |
 | --- | --- | --- | --- |
 | 0 | Baseline, licensing and reproducibility | COMPLETE | Baseline license audit, repeatable APK payload and strict dependency checksum validation passed. |
-| 1 | Android source integration | NOT STARTED | Branded native APK installs |
+| 1 | Android source integration | IN PROGRESS | Branded ARM64 build and alignment passed. Physical Android 16 installation and launch are pending. |
 | 2 | Local console streaming | NOT STARTED | 15-minute gameplay test |
 | 3 | PSN login and discovery | NOT STARTED | Real-account authentication test |
 | 4 | Remote NAT traversal | NOT STARTED | Two external network tests |
@@ -32,6 +32,13 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - Native source is compiled through root `CMakeLists.txt`; upstream has git submodules.
 - Upstream COPYING contains GNU AGPL v3.
 - Remote PSN setup docs state IPv4-only and warn that some NAT types cannot hole punch.
+
+## Phase 1 Android integration
+
+- Verified a fresh recursive checkout of `engine/chiaki` at the audited commit with the eight matching nested gitlinks and both upstream license files.
+- Applied the PS PlayAnywhere identity patch. Gradle built version `0.1.0` (version code `1`) as `com.tranquil.ps5remoteplay`. APK inspection verified the label, launcher icon and matching FileProvider authority. The existing Kotlin/JNI namespace is preserved.
+- A clean build from the recursive checkout passed all 42 Gradle tasks with the final checksum lock. Its ARM64-only debug APK SHA-256 is `ccf54bdc6596dc5e7c89a0b73ff2e669f9d01877797fe4211c8274b456e9bd52`. The debug signature verified, and the APK passed its 16 KB ZIP alignment check. All LOAD segments in the three packaged ARM64 shared libraries reported `0x4000` alignment.
+- ADB listed no connected devices. The physical install and launch gate stays open.
 
 ## Phase 0 checksum verification
 
@@ -86,7 +93,7 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - 2026-11-22: Expanded roadmap to 12 gated engineering phases and updated evidence ledger.
 
 ## Next actions (strict order)
-1. Choose the pinned source integration for Phase 1.
-2. Verify the branded Android build and physical launch.
+1. Verify installation and launch on a physical Android 16 ARM64 device.
+2. Complete the Phase 1 device gate, then begin local console registration and streaming in Phase 2.
 
 Do not mark a phase complete based solely on plans, source presence or an unexecuted CI workflow.

@@ -1,0 +1,3 @@
+[submodule "chiaki"]
+	path = engine/chiaki
+	url = https://github.com/chiaki-ng/chiaki-ng.git

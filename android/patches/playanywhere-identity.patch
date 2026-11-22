@@ -1,0 +1,92 @@
+diff --git a/android/app/build.gradle b/android/app/build.gradle
+index 61618b5..a33ede0 100644
+--- a/android/app/build.gradle
++++ b/android/app/build.gradle
+@@ -27,7 +27,7 @@ android {
+     defaultConfig {
+-        applicationId "com.metallic.chiaki"
++        applicationId "com.tranquil.ps5remoteplay"
+         minSdk 24
+         targetSdk 35
+-        versionCode 12
+-        versionName chiakiVersion
++        versionCode 1
++        versionName "0.1.0"
+         externalNativeBuild {
+diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
+index a9594cb..9e95485 100644
+--- a/android/app/src/main/AndroidManifest.xml
++++ b/android/app/src/main/AndroidManifest.xml
+@@ -18,3 +18,3 @@
+         android:allowBackup="true"
+-        android:icon="@mipmap/ic_launcher"
++        android:icon="@drawable/ic_playanywhere_launcher"
+         android:label="@string/app_name"
+@@ -22,3 +22,3 @@
+         android:banner="@mipmap/atv_banner"
+-        android:roundIcon="@mipmap/ic_launcher_round"
++        android:roundIcon="@drawable/ic_playanywhere_launcher"
+         android:supportsRtl="true"
+@@ -28,3 +28,3 @@
+         <provider
+-            android:authorities="com.metallic.chiaki.fileprovider"
++            android:authorities="${applicationId}.fileprovider"
+             android:name="androidx.core.content.FileProvider"
+diff --git a/android/app/src/main/java/com/metallic/chiaki/common/LogManager.kt b/android/app/src/main/java/com/metallic/chiaki/common/LogManager.kt
+index 22c4c0c..4a0cc50 100644
+--- a/android/app/src/main/java/com/metallic/chiaki/common/LogManager.kt
++++ b/android/app/src/main/java/com/metallic/chiaki/common/LogManager.kt
+@@ -11,3 +11,3 @@ import java.util.regex.Pattern
+ 
+-val fileProviderAuthority = "com.metallic.chiaki.fileprovider"
++fun fileProviderAuthority(context: Context) = "${context.packageName}.fileprovider"
+ private const val baseDirName = "session_logs" // must be in sync with filepaths.xml
+diff --git a/android/app/src/main/java/com/metallic/chiaki/common/SerializedSettings.kt b/android/app/src/main/java/com/metallic/chiaki/common/SerializedSettings.kt
+index 5b45dc3..b1d7112 100644
+--- a/android/app/src/main/java/com/metallic/chiaki/common/SerializedSettings.kt
++++ b/android/app/src/main/java/com/metallic/chiaki/common/SerializedSettings.kt
+@@ -136,3 +136,3 @@ fun exportAndShareAllSettings(activity: Activity, scope: CoroutineScope)
+ 		}
+-		val uri = FileProvider.getUriForFile(activity, fileProviderAuthority, file)
++		val uri = FileProvider.getUriForFile(activity, fileProviderAuthority(activity), file)
+ 		Intent(Intent.ACTION_SEND).also {
+diff --git a/android/app/src/main/java/com/metallic/chiaki/settings/SettingsLogsFragment.kt b/android/app/src/main/java/com/metallic/chiaki/settings/SettingsLogsFragment.kt
+index 0397172..77f6bd3 100644
+--- a/android/app/src/main/java/com/metallic/chiaki/settings/SettingsLogsFragment.kt
++++ b/android/app/src/main/java/com/metallic/chiaki/settings/SettingsLogsFragment.kt
+@@ -71,3 +71,3 @@ class SettingsLogsFragment: AppCompatDialogFragment(), TitleFragment
+ 		val activity = activity ?: return
+-		val uri = FileProvider.getUriForFile(activity, fileProviderAuthority, file.file)
++		val uri = FileProvider.getUriForFile(activity, fileProviderAuthority(activity), file.file)
+ 		Intent(Intent.ACTION_SEND).also {
+diff --git a/android/app/src/main/res/drawable/ic_playanywhere_launcher.xml b/android/app/src/main/res/drawable/ic_playanywhere_launcher.xml
+new file mode 100644
+index 0000000..03c7630
+--- /dev/null
++++ b/android/app/src/main/res/drawable/ic_playanywhere_launcher.xml
+@@ -0,0 +1,16 @@
++<?xml version="1.0" encoding="utf-8"?>
++<vector xmlns:android="http://schemas.android.com/apk/res/android"
++    android:width="108dp"
++    android:height="108dp"
++    android:viewportWidth="108"
++    android:viewportHeight="108">
++    <path
++        android:fillColor="#151A2D"
++        android:pathData="M24,0H84Q108,0 108,24V84Q108,108 84,108H24Q0,108 0,84V24Q0,0 24,0Z" />
++    <path
++        android:fillColor="#51E0D0"
++        android:pathData="M32,26H76Q82,26 82,32V47H76V34Q76,32 74,32H34Q32,32 32,34V74Q32,76 34,76H74Q76,76 76,74V61H82V76Q82,82 76,82H32Q26,82 26,76V32Q26,26 32,26Z" />
++    <path
++        android:fillColor="#F4FCFF"
++        android:pathData="M47,43Q45,42 45,45V63Q45,66 47,65L63,56Q66,54 63,52Z" />
++</vector>
+diff --git a/android/app/src/main/res/values/strings.xml b/android/app/src/main/res/values/strings.xml
+index 6ab2beb..214143f 100644
+--- a/android/app/src/main/res/values/strings.xml
++++ b/android/app/src/main/res/values/strings.xml
+@@ -1,3 +1,3 @@
+ <resources>
+-    <string name="app_name">Chiaki</string>
++    <string name="app_name">PS PlayAnywhere</string>
+     <string name="title_main">Chiaki 千秋</string>

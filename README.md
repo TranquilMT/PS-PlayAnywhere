@@ -2,7 +2,7 @@
 
 Unofficial Android PS5 Remote Play client project.
 
-**Status:** Repository initialized; no playable APK has been built or tested.
+**Status.** Phase 1 Android integration is in progress. The branded debug build compiles and passes package checks. Physical Android 16 installation and launch are pending.
 
 ## Objectives
 - Native PS5 streaming over local Wi-Fi and remote networks (4G/5G/external Wi-Fi).
@@ -10,10 +10,19 @@ Unofficial Android PS5 Remote Play client project.
 - Remote PSN console discovery and authentication, subject to upstream support.
 - Configurable streaming quality and connection diagnostics.
 
-## Implementation plan
-Use a verified, Android-compatible open-source Chiaki/chiaki-ng implementation as the native streaming foundation. Verify its repository, license, build instructions, remote PSN functionality, and required Android SDK/NDK versions before importing it. Preserve upstream license notices. A WebView is not a substitute for the native streaming engine.
+## Android source
+The native streaming engine lives at `engine/chiaki`, a submodule pinned to the audited Chiaki revision. Clone with `--recurse-submodules`, or initialize it with `git submodule update --init --recursive`.
 
-Proposed Android package ID: `com.tranquil.ps5remoteplay`.
+Use JDK 17, Gradle 8.11.1, Android SDK 35, CMake 3.22.1, NDK r28c, `protoc` and Python Protobuf. From the root of a fresh checkout, prepare and build with:
+
+```bash
+bash build-support/apply-dependency-pins.sh engine/chiaki
+git -C engine/chiaki apply "$PWD/android/patches/playanywhere-identity.patch"
+export SOURCE_DATE_EPOCH="$(git -C engine/chiaki show -s --format=%ct HEAD)"
+gradle -p engine/chiaki/android :app:assembleDebug --dependency-verification strict
+```
+
+The package ID is `com.tranquil.ps5remoteplay`. The initial version is `0.1.0` with version code `1`.
 
 See [ROADMAP.md](ROADMAP.md) for the implementation and verification checklist.
 

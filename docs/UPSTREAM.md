@@ -19,7 +19,7 @@
 
 ## Android dependency inventory
 
-These entries come from the pinned source, Android Gradle catalog and CMake files. The resolved Android runtime dependency graph and the contents of the built APK still need to be checked against this inventory.
+These entries come from the pinned source, Android Gradle catalog and CMake files. The resolved Android runtime graph and the packaged native libraries were checked against this inventory.
 
 | Dependency | Revision or version | Role in the Android baseline | License evidence |
 | --- | --- | --- | --- |
@@ -57,11 +57,11 @@ The build preparation script applies both archive hashes through CMake `URL_HASH
 
 ## Android integration notes
 
-- Preserve the upstream Kotlin namespace and JNI bindings when setting the new application ID. Change the manifest FileProvider authority to use `${applicationId}` and update the matching runtime lookup in the same patch.
+- Android integration uses the pinned `engine/chiaki` submodule and a tracked app identity patch. The patch preserves the Kotlin namespace and JNI bindings and derives the FileProvider authority from the application ID.
 - The pinned Android app has discovery, manual console registration and streaming screens. Its native CMake target includes Chiaki's remote hole-punching code, but the Android manifest has no PSN sign-in callback and the Android UI has no PSN authentication flow. Verify Android pairing and streaming first, then wire and test PSN authentication separately.
 
 ## Source distribution requirements
-The first workflow builds upstream source without modifying it. It does **not** yet produce a PS PlayAnywhere branded APK. When distributing a modified app, preserve copyright and AGPL notices and provide the complete corresponding source and build scripts. Review all bundled third-party licenses before publishing a release. Never publish signing keys, PSN tokens or user registration secrets.
+The pinned submodule retains the upstream source and license files. The build scripts and tracked patches are part of the corresponding source for the branded app. Preserve copyright and AGPL notices and include the source, build scripts and bundled dependencies in the Phase 10 release package. Never publish signing keys, PSN tokens or user registration secrets.
 
 ## Reproducibility status
 - [x] Pin upstream Git revision in CI
@@ -76,4 +76,4 @@ The first workflow builds upstream source without modifying it. It does **not** 
 - [ ] Sign and publish a compliant PS PlayAnywhere release
 
 ## Limitations
-GitHub Actions is currently configured for an upstream *debug baseline*. A debug APK is not a production-signed release. Build success and functional PS5/PSN support require independent verification.
+GitHub Actions builds the upstream debug baseline and the PS PlayAnywhere integration APK. Release signing, physical launch, PS5 pairing and PSN connectivity are tracked separately in the roadmap.

@@ -1,0 +1,15 @@
+name: PS PlayAnywhere Android integration
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/android-integration.yml'
+      - 'android/**'
+      - 'engine/chiaki'
+      - '.gitmodules'
+      - 'build-support/**'
+jobs:
+  android:
+    uses: ./.github/workflows/android-baseline.yml
+    with:
+      integration: true
