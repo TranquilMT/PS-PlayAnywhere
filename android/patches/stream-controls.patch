@@ -11,7 +11,7 @@ index 822fe76..cfc0bfa 100644
 +				controllerStateUpdated()
  				return true
 diff --git a/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt b/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt
-index c15e57c..2ac1962 100644
+index c15e57c..5cab073 100644
 --- a/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt
 +++ b/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt
 @@ -27,2 +27,3 @@ import com.metallic.chiaki.common.ext.viewModelFactory
@@ -51,7 +51,11 @@ index c15e57c..2ac1962 100644
 -				.onEach { viewModel.input.touchControllerState = it }
 -				.launchIn(lifecycleScope)
  			fragment.onScreenControlsEnabled = viewModel.onScreenControlsEnabled
-@@ -347,3 +355,3 @@ class StreamActivity : AppCompatActivity()
+@@ -171,3 +179,2 @@ class StreamActivity : AppCompatActivity()
+ 		super.onDestroy()
+-		controlsJob?.cancel()
+ 	}
+@@ -347,3 +354,3 @@ class StreamActivity : AppCompatActivity()
  	override fun dispatchKeyEvent(event: KeyEvent) = viewModel.input.dispatchKeyEvent(event) || super.dispatchKeyEvent(event)
 -	override fun onGenericMotionEvent(event: MotionEvent) = viewModel.input.onGenericMotionEvent(event) || super.onGenericMotionEvent(event)
 +	override fun dispatchGenericMotionEvent(event: MotionEvent) = viewModel.input.onGenericMotionEvent(event) || super.dispatchGenericMotionEvent(event)
