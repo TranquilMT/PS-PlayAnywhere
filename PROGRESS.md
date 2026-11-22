@@ -1,61 +1,47 @@
-# PS PlayAnywhere — PROGRESS
+# PS PlayAnywhere — Progress and verification ledger
 
-Last updated: 2026-11-22
+Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMAP.md](ROADMAP.md) for the full 12-phase task breakdown.
 
-## Status legend
-- [x] Complete (evidence recorded)
-- [ ] Pending
-- BLOCKED: prerequisite missing
-- EXPERIMENTAL: unverified technique
+## Current state
+**Active:** Phase 0 — Native baseline build.
+**Works:** GitHub repository, project documentation, committed GitHub Actions workflow definition.
+**Not verified:** CI build success, APK installation, console pairing, video/audio, controllers, PSN authentication, remote connection, frame interpolation.
+**Blockers:** First build result has not been inspected; upstream revision is not pinned; physical PS5/Android testing is still required.
 
-## Phase 0 — Repository and upstream investigation
-- [x] Public repository created: https://github.com/TranquilMT/PS-PlayAnywhere
-- [x] README, ROADMAP and .gitignore committed
-- [x] Identified primary upstream: https://github.com/chiaki-ng/chiaki-ng
-- [x] Confirmed upstream source contains an android/ frontend and lib/ protocol implementation (per contributor guide)
-- [x] Located upstream remote PSN documentation: https://github.com/chiaki-ng/chiaki-ng/blob/main/docs/setup/remoteconnection.md
-- [x] Inspect upstream Android Gradle build requirements (Java 17, compile SDK 35, NDK 28.2.13676358, CMake 3.22.1); upstream commit still needs pinning
-- [ ] Audit all native dependencies before import (upstream COPYING is AGPL-3.0)
-- [ ] Select pinned upstream revision
-- [ ] Produce first reproducible native Android build (GitHub Actions workflow added, execution unverified)
+## Phase gates
+| Phase | Name | Status | Evidence / next gate |
+| --- | --- | --- | --- |
+| 0 | Baseline, licensing and reproducibility | IN PROGRESS | Android Gradle inspected; CI workflow committed; successful run missing |
+| 1 | Android source integration | NOT STARTED | Branded native APK installs |
+| 2 | Local console streaming | NOT STARTED | 15-minute gameplay test |
+| 3 | PSN login and discovery | NOT STARTED | Real-account authentication test |
+| 4 | Remote NAT traversal | NOT STARTED | Two external network tests |
+| 5 | Video and latency | NOT STARTED | Sustained native 60 FPS measurement |
+| 6 | Audio and input | NOT STARTED | Controller and audio tests |
+| 7 | 30→60 interpolation | NOT STARTED | Latency/artifact benchmark |
+| 8 | UI and accessibility | NOT STARTED | Onboarding acceptance |
+| 9 | Reliability and security | NOT STARTED | Security and soak test |
+| 10 | Build, signing and releases | NOT STARTED | Signed APK, source, checksum |
+| 11 | Device acceptance | NOT STARTED | Physical device report |
 
-**Works:** GitHub repository, documentation, and committed baseline Android CI workflow definition.
-**Does not work / not verified:** Native app, PS5 pairing, video/audio streaming, PSN login, off-network connection, controllers, interpolation, APK.
-**Current blocker:** First CI build has not been verified. Workflow currently checks out upstream main; pin to tested commit before release.
+## Verified upstream facts
+- Source: https://github.com/chiaki-ng/chiaki-ng
+- Android entry point: `android/app/build.gradle`, using Java 17, Android compileSdk 35, NDK 28.2.13676358 and CMake 3.22.1.
+- Gradle wrapper: 8.11.1; Android Gradle Plugin: 8.7.3.
+- Native source is compiled through root `CMakeLists.txt`; upstream has git submodules.
+- Upstream COPYING contains GNU AGPL v3.
+- Remote PSN setup docs state IPv4-only and warn that some NAT types cannot hole punch.
 
-## Phase 1 — Native streaming
-- [ ] Import pinned upstream with license notices
-- [ ] Compile Android ARM64 client
-- [ ] Verify local PS5 registration
-- [ ] Verify video/audio streaming and input
+## Change log
+- 2026-11-22: Added README, ROADMAP, .gitignore and PROGRESS.md.
+- 2026-11-22: Committed `.github/workflows/android-baseline.yml` to attempt an upstream native debug build and archive checksum/provenance.
+- 2026-11-22: Audited upstream Android Gradle, wrapper, submodule list, COPYING and remote connectivity documentation.
+- 2026-11-22: Expanded roadmap to 12 gated engineering phases and updated evidence ledger.
 
-## Phase 2 — Remote PSN
-- [ ] Verify PSN sign-in flow and secure token handling
-- [ ] Verify console discovery, remote wake, IPv4 UDP NAT traversal
-- [ ] Test external Wi-Fi and cellular networks
-- [ ] Record NAT/network failure handling
+## Next actions (strict order)
+1. Inspect GitHub Actions baseline build run and diagnose errors.
+2. Pin upstream commit and update CI to use it.
+3. Build successfully, record SHA-256, then integrate native source into PS PlayAnywhere.
+4. Begin physical-device local pairing tests before claiming remote support.
 
-## Phase 3 — Video and controls
-- [ ] Android MediaCodec hardware decoding
-- [ ] 720p/1080p and 30/60 FPS source options as supported
-- [ ] Bluetooth/USB DualSense and touchscreen
-- [ ] Streaming metrics and reconnect handling
-
-## Phase 4 — Experimental 30-to-60 display interpolation
-- [ ] Measure baseline latency, decode time and dropped frames
-- [ ] Implement optional GPU motion interpolation prototype
-- [ ] Measure artifacts, GPU/battery cost and added latency
-- [ ] Provide immediate disable switch and favor native 60 FPS
-
-**Note:** Interpolated 60 FPS is not native 60 FPS gameplay and may increase input latency.
-
-## Phase 5 — UI and release
-- [ ] Landscape Android UI
-- [ ] Settings and diagnostics
-- [ ] CI build and secure signing
-- [ ] Signed APK, full source and SHA-256
-- [ ] Device tests and release notes
-
-## Evidence log
-- 2026-11-22: Inspected upstream android/app/build.gradle and COPYING via GitHub connector; confirmed native Android Gradle/CMake build and AGPL-3.0 license. Added .github/workflows/android-baseline.yml to compile upstream debug APK and upload checksum/commit provenance. No successful build claimed.
-- 2026-11-22: Created PROGRESS.md. Verified repository and identified upstream architecture and PSN documentation. No native code or APK shipped.
+Do not mark a phase complete based solely on plans, source presence or an unexecuted CI workflow.
