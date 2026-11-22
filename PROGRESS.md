@@ -6,7 +6,7 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 **Active:** Phase 0 — Native baseline build.
 **Works:** GitHub repository, project documentation, committed GitHub Actions workflow definition.
 **Not verified:** CI build success, APK installation, console pairing, video/audio, controllers, PSN authentication, remote connection, frame interpolation.
-**Blockers:** Both initial CI runs failed at Android SDK setup, before native compilation. Fix committed in a40cad2; its new run must be checked. Native third-party licenses and physical device tests remain pending.
+**Blockers:** Run #3 (45004455273) passed SDK setup and Gradle wrapper validation and entered native compilation; compilation result and artifact are pending. Native third-party licenses and physical device tests remain pending.
 
 ## Phase gates
 | Phase | Name | Status | Evidence / next gate |
@@ -32,6 +32,11 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - Native source is compiled through root `CMakeLists.txt`; upstream has git submodules.
 - Upstream COPYING contains GNU AGPL v3.
 - Remote PSN setup docs state IPv4-only and warn that some NAT types cannot hole punch.
+
+## Verified CI run #3
+- https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45004455273 (job 137152820250).
+- Observed: checkout, source SHA assertion, Java 17, Android toolchain installation, Gradle wrapper checks **success**.
+- Observed: `Build upstream Android debug APK` **in progress** at inspection; checksum and upload pending. No APK claimed.
 
 ## Verified CI failures
 - Run #1: failed (2026-11-22).
