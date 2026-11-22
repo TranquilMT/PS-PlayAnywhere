@@ -15,10 +15,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: chiaki-ng/chiaki-ng
+          ref: 43728af2e639fecb8a7af1cd68c29820a40de973
           path: upstream
           submodules: recursive
-      - name: Record upstream commit
-        run: git -C upstream rev-parse HEAD | tee upstream-commit.txt
+      - name: Verify pinned upstream revision
+        run: |
+          actual="$(git -C upstream rev-parse HEAD)"
+          expected="43728af2e639fecb8a7af1cd68c29820a40de973"
+          echo "$actual" | tee upstream-commit.txt
+          test "$actual" = "$expected"
       - name: Java 17
         uses: actions/setup-java@v4
         with:
@@ -30,6 +35,11 @@ jobs:
         run: |
           sdkmanager --install "platforms;android-35" "build-tools;35.0.0" "cmake;3.22.1" "ndk;28.2.13676358"
           yes | sdkmanager --licenses || true
+      - name: Validate Gradle wrapper checksum metadata
+        run: |
+          test -f upstream/android/gradle/wrapper/gradle-wrapper.jar
+          test -f upstream/android/gradle/wrapper/gradle-wrapper.properties
+          grep -F 'gradle-8.11.1-bin.zip' upstream/android/gradle/wrapper/gradle-wrapper.properties
       - name: Build upstream Android debug APK
         working-directory: upstream/android
         run: |
@@ -38,7 +48,8 @@ jobs:
       - name: SHA-256 checksum
         if: success()
         run: |
-          find upstream/android/app/build/outputs/apk/debug -name '*.apk' -exec sha256sum {} \; > SHA256SUMS.txt
+          find upstream/android/app/build/outputs/apk/debug -name '*.apk' -print0 | sort -z | xargs -0 -r sha256sum > SHA256SUMS.txt
+          test -s SHA256SUMS.txt
       - name: Upload APK and provenance
         if: success()
         uses: actions/upload-artifact@v4
