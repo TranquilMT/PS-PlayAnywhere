@@ -6,12 +6,12 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 **Active:** Phase 0 — Native baseline build.
 **Works:** GitHub repository, project documentation, committed GitHub Actions workflow definition.
 **Not verified:** CI build success, APK installation, console pairing, video/audio, controllers, PSN authentication, remote connection, frame interpolation.
-**Blockers:** First build result has not been inspected; upstream revision is not pinned; physical PS5/Android testing is still required.
+**Blockers:** First CI build result has not been verified; native third-party licenses still need full review; physical PS5/Android testing is required.
 
 ## Phase gates
 | Phase | Name | Status | Evidence / next gate |
 | --- | --- | --- | --- |
-| 0 | Baseline, licensing and reproducibility | IN PROGRESS | Android Gradle inspected; CI workflow committed; successful run missing |
+| 0 | Baseline, licensing and reproducibility | IN PROGRESS | Source pinned; CI provenance checks committed; successful run missing |
 | 1 | Android source integration | NOT STARTED | Branded native APK installs |
 | 2 | Local console streaming | NOT STARTED | 15-minute gameplay test |
 | 3 | PSN login and discovery | NOT STARTED | Real-account authentication test |
@@ -25,6 +25,7 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 | 11 | Device acceptance | NOT STARTED | Physical device report |
 
 ## Verified upstream facts
+- Pinned commit: `43728af2e639fecb8a7af1cd68c29820a40de973`; source and license inventory: `docs/UPSTREAM.md`.
 - Source: https://github.com/chiaki-ng/chiaki-ng
 - Android entry point: `android/app/build.gradle`, using Java 17, Android compileSdk 35, NDK 28.2.13676358 and CMake 3.22.1.
 - Gradle wrapper: 8.11.1; Android Gradle Plugin: 8.7.3.
@@ -33,15 +34,17 @@ Updated: 2026-11-22. This file is the authoritative evidence ledger; see [ROADMA
 - Remote PSN setup docs state IPv4-only and warn that some NAT types cannot hole punch.
 
 ## Change log
+- 2026-11-22: Pinned upstream Chiaki revision in workflow and added exact commit assertion, Gradle wrapper presence check and nonempty SHA-256 manifest check.
+- 2026-11-22: Created docs/UPSTREAM.md with source provenance, toolchain versions, licensing and reproducibility limitations.
 - 2026-11-22: Added README, ROADMAP, .gitignore and PROGRESS.md.
 - 2026-11-22: Committed `.github/workflows/android-baseline.yml` to attempt an upstream native debug build and archive checksum/provenance.
 - 2026-11-22: Audited upstream Android Gradle, wrapper, submodule list, COPYING and remote connectivity documentation.
 - 2026-11-22: Expanded roadmap to 12 gated engineering phases and updated evidence ledger.
 
 ## Next actions (strict order)
-1. Inspect GitHub Actions baseline build run and diagnose errors.
-2. Pin upstream commit and update CI to use it.
-3. Build successfully, record SHA-256, then integrate native source into PS PlayAnywhere.
+1. Inspect GitHub Actions baseline build run and diagnose errors; workflow was updated to trigger on push.
+2. Fix any native build failures and record successful artifact SHA-256.
+3. Finish third-party licensing review, then integrate native source into PS PlayAnywhere.
 4. Begin physical-device local pairing tests before claiming remote support.
 
 Do not mark a phase complete based solely on plans, source presence or an unexecuted CI workflow.
