@@ -154,3 +154,7 @@ Streaming options can limit requested video bitrate to 5 Mbps independently of r
 ## Version 0.1.12
 
 The GPU midpoint shader uses a logistic blend trained on 100 synthetic scenes, plus a confidence gate. Across eligible sampled pixels in 48 held-out scenes with simulated block vectors, mean squared error changed from 0.00780 to 0.00546. This measures the blend stage only. Live PS5 image quality and sustained Android throughput remain unverified.
+
+## Version 0.1.13
+
+VYNUVO branding, an animated launch sequence, and Xbox Cloud Gaming and PC / Steam previews are implemented in the Android integration patch. The pinned native Chiaki-ng engine remains the PlayStation provider. Live device coverage is tracked in the roadmap.

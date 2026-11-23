@@ -1,4 +1,4 @@
-# PS PlayAnywhere — Engineering roadmap
+# VYNUVO Roadmap
 
 Each phase has an exit gate. A feature is complete only when build output, test evidence, or device logs prove it. Status is recorded in [PROGRESS.md](PROGRESS.md).
 
@@ -127,3 +127,10 @@ The Phase 0 build artifact is an upstream Chiaki debug reference used to verify 
 - A 30 FPS source cannot gain real gameplay updates from frame interpolation.
 - Interpolation adds compute cost and may increase latency.
 - Upstream AGPL-3.0 obligations must be preserved.
+
+## Platform expansion
+
+- [x] Show Xbox Cloud Gaming and PC / Steam as Coming soon in the Android hub.
+- [ ] Implement and test Xbox Cloud Gaming authentication, controller input and playback.
+- [ ] Select a PC streaming protocol and validate host pairing, controller input and Steam game launches.
+- [ ] Verify the rebrand on a physical Android device, including upgrading from 0.1.12 and opening an existing PlayStation pairing.

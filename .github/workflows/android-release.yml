@@ -1,4 +1,4 @@
-name: PS PlayAnywhere Android release
+name: VYNUVO Android release
 on:
   workflow_dispatch:
   push:
@@ -25,7 +25,7 @@ jobs:
         with:
           name: ps-playanywhere-debug-integration-${{ github.run_attempt }}
           path: artifact
-      - name: Sign with the PS PlayAnywhere update key
+      - name: Sign with the existing Android update key
         working-directory: artifact
         env:
           KEYSTORE_B64: ${{ secrets.PSPA_KEYSTORE_BASE64 }}
@@ -35,7 +35,7 @@ jobs:
         run: |
           set -euo pipefail
           umask 077
-          : "${KEYSTORE_B64:?PS PlayAnywhere signing keystore is required}"
+          : "${KEYSTORE_B64:?Android signing keystore is required}"
           : "${STORE_PASSWORD:?}" "${KEY_PASSWORD:?}" "${KEY_ALIAS:?}"
           key=$(mktemp "$RUNNER_TEMP/pspa-key.XXXXXX")
           trap 'rm -f "$key"' EXIT
@@ -48,21 +48,21 @@ jobs:
           certs=$("$signer" verify --print-certs signed.apk)
           actual=$(sed -n 's/^Signer #[0-9]* certificate SHA-256 digest: //p' <<< "$certs")
           [[ "$actual" == "$expected" ]] || { echo "Release signer differs from v0.1.12"; exit 1; }
-      - name: Publish latest debug release
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          path: source
+      - name: Publish VYNUVO Android release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
+          set -euo pipefail
           cd artifact
           sha256sum --check SHA256SUMS.txt
-          grep -F "versionCode='13' versionName='0.1.12'" apk-badging.txt
-          cp signed.apk PS-PlayAnywhere-0.1.12-debug.apk
-          sha256sum PS-PlayAnywhere-0.1.12-debug.apk > PS-PlayAnywhere-0.1.12-SHA256.txt
-          cat > release-notes.md <<'NOTES'
-          Android debug build for physical testing.
-
-          - GPU frame generation adds a lightweight learned midpoint blend and a confidence gate. Frame generation requests a 30 FPS source and targets 60 FPS presentation on Android.
-          - Includes a reproducible synthetic training and evaluation script. Physical phone and game performance are unverified.
-          NOTES
-          gh release create v0.1.12 PS-PlayAnywhere-0.1.12-debug.apk PS-PlayAnywhere-0.1.12-SHA256.txt \
+          grep -F "versionCode='14' versionName='0.1.13'" apk-badging.txt
+          cp signed.apk VYNUVO-0.1.13.apk
+          (cd ../source && bash tools/archive-source.sh ../artifact/VYNUVO-0.1.13-source.tar.gz)
+          sha256sum VYNUVO-0.1.13.apk VYNUVO-0.1.13-source.tar.gz > VYNUVO-0.1.13-SHA256.txt
+          gh release create v0.1.13 VYNUVO-0.1.13.apk VYNUVO-0.1.13-source.tar.gz VYNUVO-0.1.13-SHA256.txt \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "PS PlayAnywhere 0.1.12 (Android debug)" --notes-file release-notes.md --latest
+            --title "VYNUVO 0.1.13 (Android preview)" --notes-file ../source/docs/RELEASE-0.1.13.md --latest

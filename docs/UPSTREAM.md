@@ -73,7 +73,7 @@ The pinned submodule retains the upstream source and license files. The build sc
 - [x] Verify baseline dependency licenses against the resolved runtime graph and native dependency inventory
 - [x] Enforce the Android Maven artifact and native archive SHA-256 pins during builds
 - [x] Rebuild twice and compare reproducibility characteristics ([run #7](https://github.com/TranquilMT/PS-PlayAnywhere/actions/runs/45006004955)). All APK payload entries matched. The signed debug APKs used different runner-generated certificates.
-- [ ] Sign and publish a compliant PS PlayAnywhere release
+- [ ] Sign and publish a compliant VYNUVO release
 
 ## Limitations
-GitHub Actions builds the upstream debug baseline and the PS PlayAnywhere integration APK. Release signing, physical launch, PS5 pairing and PSN connectivity are tracked separately in the roadmap.
+GitHub Actions builds the upstream debug baseline and the VYNUVO integration APK. Release signing, physical launch, PS5 pairing and PSN connectivity are tracked separately in the roadmap.

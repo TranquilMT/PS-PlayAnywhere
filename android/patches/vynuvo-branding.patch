@@ -1,0 +1,311 @@
+diff --git a/android/app/build.gradle b/android/app/build.gradle
+index 45dd4ef3..af0f9036 100644
+--- a/android/app/build.gradle
++++ b/android/app/build.gradle
+@@ -28,8 +28,8 @@ android {
+         applicationId "com.tranquil.ps5remoteplay"
+         minSdk 24
+         targetSdk 35
+-        versionCode 13
+-        versionName "0.1.12"
++        versionCode 14
++        versionName "0.1.13"
+         externalNativeBuild {
+             cmake {
+                 arguments "-DCHIAKI_ENABLE_TESTS=OFF",
+diff --git a/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt b/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
+index 8da0cc14..7e9c6c86 100644
+--- a/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
++++ b/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
+@@ -2,12 +2,18 @@
+ 
+ package com.metallic.chiaki.main
+ 
++import android.animation.ValueAnimator
+ import android.app.ActivityOptions
+ import android.content.Intent
++import android.os.Build
+ import android.os.Bundle
++import android.provider.Settings
+ import android.view.Menu
+ import android.view.MenuItem
+ import android.view.View
++import android.view.ViewGroup
++import android.view.animation.DecelerateInterpolator
++import android.widget.TextView
+ import androidx.activity.addCallback
+ import androidx.appcompat.app.AppCompatActivity
+ import androidx.lifecycle.Observer
+@@ -42,11 +48,10 @@ class MainActivity : AppCompatActivity()
+ 		super.onCreate(savedInstanceState)
+ 		binding = ActivityMainBinding.inflate(layoutInflater)
+ 		setContentView(binding.root)
+-		if (savedInstanceState == null) {
+-			val intro = layoutInflater.inflate(R.layout.playanywhere_intro, null)
+-			addContentView(intro, android.view.ViewGroup.LayoutParams(-1, -1))
+-			intro.postDelayed({ (intro.parent as? android.view.ViewGroup)?.removeView(intro) }, 5000L)
+-		}
++		configurePlatformPreview(binding.xboxPreview, R.string.platform_xbox, R.string.platform_xbox_details)
++		configurePlatformPreview(binding.pcPreview, R.string.platform_pc, R.string.platform_pc_details)
++		if (savedInstanceState == null && motionEnabled())
++			showBrandIntro()
+ 
+ 		title = ""
+ 		setSupportActionBar(binding.toolbar)
+@@ -86,6 +91,58 @@ class MainActivity : AppCompatActivity()
+ 		})
+ 	}
+ 
++	private fun motionEnabled(): Boolean =
++		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ValueAnimator.areAnimatorsEnabled()
++		else Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
++
++	private fun configurePlatformPreview(button: TextView, title: Int, details: Int)
++	{
++		button.text = getString(R.string.platform_preview_label, getString(title), getString(R.string.platform_coming_soon))
++		button.setOnClickListener {
++			val dialog = MaterialAlertDialogBuilder(this)
++				.setTitle(title)
++				.setMessage(details)
++				.setPositiveButton(android.R.string.ok, null)
++				.show()
++			if (motionEnabled()) {
++				dialog.window?.decorView?.let { panel ->
++					panel.alpha = 0f
++					panel.scaleX = 0.97f
++					panel.scaleY = 0.97f
++					panel.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(160).start()
++				}
++			}
++		}
++	}
++
++	private fun showBrandIntro()
++	{
++		val intro = layoutInflater.inflate(R.layout.playanywhere_intro, null)
++		addContentView(intro, ViewGroup.LayoutParams(-1, -1))
++
++		val mark = intro.findViewById<View>(R.id.introMark)
++		mark.scaleX = 0.72f
++		mark.scaleY = 0.72f
++		mark.rotation = -14f
++		reveal(mark, 0, 460)
++		mark.animate().scaleX(1f).scaleY(1f).rotation(0f)
++		reveal(intro.findViewById(R.id.introWordmark), 100, 360)
++		reveal(intro.findViewById(R.id.introTagline), 180, 320)
++
++		intro.animate().alpha(0f).setStartDelay(620).setDuration(180).withEndAction {
++			(intro.parent as? ViewGroup)?.removeView(intro)
++			reveal(binding.platformRow, 0, 200)
++		}.start()
++	}
++
++	private fun reveal(view: View, delay: Long, duration: Long)
++	{
++		view.alpha = 0f
++		view.translationY = 10f * resources.displayMetrics.density
++		view.animate().alpha(1f).translationY(0f).setStartDelay(delay).setDuration(duration)
++			.setInterpolator(DecelerateInterpolator()).start()
++	}
++
+ 	private fun updateEmptyInfo()
+ 	{
+ 		if(viewModel.displayHosts.value?.isEmpty() ?: true)
+diff --git a/android/app/src/main/res/drawable/ic_playanywhere_launcher.xml b/android/app/src/main/res/drawable/ic_playanywhere_launcher.xml
+index 2b1020ab..7908acda 100644
+--- a/android/app/src/main/res/drawable/ic_playanywhere_launcher.xml
++++ b/android/app/src/main/res/drawable/ic_playanywhere_launcher.xml
+@@ -1,15 +1,9 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <vector xmlns:android="http://schemas.android.com/apk/res/android"
+-    android:width="108dp"
+-    android:height="108dp"
+-    android:viewportWidth="108"
+-    android:viewportHeight="108">
+-    <path android:fillColor="#10182A" android:pathData="M24,0H84Q108,0 108,24V84Q108,108 84,108H24Q0,108 0,84V24Q0,0 24,0Z" />
+-    <path android:fillColor="#71F4DF"
+-        android:pathData="M34,34H74Q80,34 80,40V65Q80,71 74,71H34Q28,71 28,65V40Q28,34 34,34ZM34,39Q33,39 33,40V65Q33,66 34,66H74Q75,66 75,65V40Q75,39 74,39Z"
+-        android:fillType="evenOdd" />
+-    <path android:fillColor="#FFFFFF"
+-        android:pathData="M48,44L65,53L48,62Z" />
+-    <path android:fillColor="#71F4DF"
+-        android:pathData="M44,75H64V79H44Z" />
++    android:width="108dp" android:height="108dp"
++    android:viewportWidth="108" android:viewportHeight="108">
++    <path android:fillColor="#111329" android:pathData="M24,0H84Q108,0 108,24V84Q108,108 84,108H24Q0,108 0,84V24Q0,0 24,0Z" />
++    <path android:fillColor="#A698FF" android:pathData="M23,30H39L54,63L48,79Z" />
++    <path android:fillColor="#64F5D4" android:pathData="M84,30H68L46,79H61Z" />
++    <path android:fillColor="#D8FFF6" android:pathData="M77,43L84,30H94Z" />
+ </vector>
+diff --git a/android/app/src/main/res/drawable/ic_playanywhere_mark.xml b/android/app/src/main/res/drawable/ic_playanywhere_mark.xml
+index b74f435d..04d4b73b 100644
+--- a/android/app/src/main/res/drawable/ic_playanywhere_mark.xml
++++ b/android/app/src/main/res/drawable/ic_playanywhere_mark.xml
+@@ -1,14 +1,8 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <vector xmlns:android="http://schemas.android.com/apk/res/android"
+-    android:width="34dp"
+-    android:height="34dp"
+-    android:viewportWidth="108"
+-    android:viewportHeight="108">
+-    <path android:fillColor="#71F4DF"
+-        android:pathData="M34,34H74Q80,34 80,40V65Q80,71 74,71H34Q28,71 28,65V40Q28,34 34,34ZM34,39Q33,39 33,40V65Q33,66 34,66H74Q75,66 75,65V40Q75,39 74,39Z"
+-        android:fillType="evenOdd" />
+-    <path android:fillColor="#FFFFFF"
+-        android:pathData="M48,44L65,53L48,62Z" />
+-    <path android:fillColor="#71F4DF"
+-        android:pathData="M44,75H64V79H44Z" />
++    android:width="32dp" android:height="32dp"
++    android:viewportWidth="108" android:viewportHeight="108">
++    <path android:fillColor="#A698FF" android:pathData="M23,30H39L54,63L48,79Z" />
++    <path android:fillColor="#64F5D4" android:pathData="M84,30H68L46,79H61Z" />
++    <path android:fillColor="#D8FFF6" android:pathData="M77,43L84,30H94Z" />
+ </vector>
+diff --git a/android/app/src/main/res/drawable/ic_playanywhere_splash.xml b/android/app/src/main/res/drawable/ic_playanywhere_splash.xml
+index 2cd83dae..d50a11b1 100644
+--- a/android/app/src/main/res/drawable/ic_playanywhere_splash.xml
++++ b/android/app/src/main/res/drawable/ic_playanywhere_splash.xml
+@@ -1,14 +1,8 @@
+ <?xml version="1.0" encoding="utf-8"?>
+ <vector xmlns:android="http://schemas.android.com/apk/res/android"
+-    android:width="108dp"
+-    android:height="108dp"
+-    android:viewportWidth="108"
+-    android:viewportHeight="108">
+-    <path android:fillColor="#71F4DF"
+-        android:pathData="M34,34H74Q80,34 80,40V65Q80,71 74,71H34Q28,71 28,65V40Q28,34 34,34ZM34,39Q33,39 33,40V65Q33,66 34,66H74Q75,66 75,65V40Q75,39 74,39Z"
+-        android:fillType="evenOdd" />
+-    <path android:fillColor="#FFFFFF"
+-        android:pathData="M48,44L65,53L48,62Z" />
+-    <path android:fillColor="#71F4DF"
+-        android:pathData="M44,75H64V79H44Z" />
++    android:width="108dp" android:height="108dp"
++    android:viewportWidth="108" android:viewportHeight="108">
++    <path android:fillColor="#A698FF" android:pathData="M23,30H39L54,63L48,79Z" />
++    <path android:fillColor="#64F5D4" android:pathData="M84,30H68L46,79H61Z" />
++    <path android:fillColor="#D8FFF6" android:pathData="M77,43L84,30H94Z" />
+ </vector>
+diff --git a/android/app/src/main/res/layout/activity_main.xml b/android/app/src/main/res/layout/activity_main.xml
+index c9975280..a2e1f9d2 100644
+--- a/android/app/src/main/res/layout/activity_main.xml
++++ b/android/app/src/main/res/layout/activity_main.xml
+@@ -149,7 +149,6 @@
+             android:layout_height="wrap_content"
+             android:layout_width="match_parent"
+             android:background="?attr/colorPrimarySurface"
+-            app:layout_scrollFlags="scroll|enterAlways"
+             android:theme="@style/AppTheme.Toolbar">
+ 
+             <androidx.appcompat.widget.AppCompatTextView
+@@ -164,6 +163,41 @@
+                 android:drawablePadding="6dp" />
+ 
+         </com.google.android.material.appbar.MaterialToolbar>
++
++        <LinearLayout
++            android:id="@+id/platformRow"
++            android:layout_width="match_parent"
++            android:layout_height="wrap_content"
++            android:orientation="vertical"
++            android:paddingStart="16dp"
++            android:paddingEnd="16dp">
++            <TextView
++                android:layout_width="match_parent"
++                android:layout_height="wrap_content"
++                android:text="@string/platform_playstation"
++                android:textAppearance="?attr/textAppearanceSubtitle1" />
++            <LinearLayout
++                android:layout_width="match_parent"
++                android:layout_height="wrap_content"
++                android:orientation="horizontal">
++                <com.google.android.material.button.MaterialButton
++                    android:id="@+id/xboxPreview"
++                    style="@style/Widget.MaterialComponents.Button.TextButton"
++                    android:layout_width="0dp"
++                    android:layout_height="wrap_content"
++                    android:layout_weight="1"
++                    android:minHeight="48dp"
++                    android:textAllCaps="false" />
++                <com.google.android.material.button.MaterialButton
++                    android:id="@+id/pcPreview"
++                    style="@style/Widget.MaterialComponents.Button.TextButton"
++                    android:layout_width="0dp"
++                    android:layout_height="wrap_content"
++                    android:layout_weight="1"
++                    android:minHeight="48dp"
++                    android:textAllCaps="false" />
++            </LinearLayout>
++        </LinearLayout>
+     </com.google.android.material.appbar.AppBarLayout>
+ 
+ </androidx.coordinatorlayout.widget.CoordinatorLayout>
+\ No newline at end of file
+diff --git a/android/app/src/main/res/layout/playanywhere_intro.xml b/android/app/src/main/res/layout/playanywhere_intro.xml
+index 8acf4ed2..e45e4265 100644
+--- a/android/app/src/main/res/layout/playanywhere_intro.xml
++++ b/android/app/src/main/res/layout/playanywhere_intro.xml
+@@ -1,11 +1,15 @@
+ <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+     android:layout_width="match_parent" android:layout_height="match_parent"
+-    android:orientation="vertical" android:gravity="center" android:background="#10182A"
+-    android:clickable="true" android:focusable="true">
+-    <ImageView android:layout_width="140dp" android:layout_height="140dp"
+-        android:src="@drawable/ic_playanywhere_splash" android:importantForAccessibility="no" />
+-    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
+-        android:text="@string/app_name" android:textSize="26sp" android:textColor="#FFFFFF" />
+-    <ProgressBar android:layout_width="24dp" android:layout_height="24dp"
+-        android:layout_marginTop="24dp" android:indeterminateTint="#71F4DF" />
++    android:orientation="vertical" android:gravity="center" android:background="#111329"
++    android:importantForAccessibility="noHideDescendants">
++    <ImageView android:id="@+id/introMark" android:layout_width="140dp"
++        android:layout_height="112dp" android:scaleType="fitCenter"
++        android:src="@drawable/ic_playanywhere_splash" />
++    <TextView android:id="@+id/introWordmark" android:layout_width="wrap_content"
++        android:layout_height="wrap_content" android:text="@string/app_name"
++        android:fontFamily="sans-serif-black" android:letterSpacing="0.16"
++        android:textSize="34sp" android:textColor="#FFFFFF" />
++    <TextView android:id="@+id/introTagline" android:layout_width="wrap_content"
++        android:layout_height="wrap_content" android:layout_marginTop="4dp"
++        android:text="@string/vynuvo_tagline" android:textSize="15sp" android:textColor="#BCC4E0" />
+ </LinearLayout>
+diff --git a/android/app/src/main/res/values-v31/playanywhere_launch_theme.xml b/android/app/src/main/res/values-v31/playanywhere_launch_theme.xml
+index 54edd6b0..3e0901ef 100644
+--- a/android/app/src/main/res/values-v31/playanywhere_launch_theme.xml
++++ b/android/app/src/main/res/values-v31/playanywhere_launch_theme.xml
+@@ -1,6 +1,6 @@
+ <resources>
+     <style name="PlayAnywhereLaunchTheme" parent="AppTheme">
+-        <item name="android:windowSplashScreenBackground">#10182A</item>
++        <item name="android:windowSplashScreenBackground">#111329</item>
+         <item name="android:windowSplashScreenAnimatedIcon">@drawable/ic_playanywhere_splash</item>
+     </style>
+ </resources>
+diff --git a/android/app/src/main/res/values/strings.xml b/android/app/src/main/res/values/strings.xml
+index 1bff6d5f..5439c66d 100644
+--- a/android/app/src/main/res/values/strings.xml
++++ b/android/app/src/main/res/values/strings.xml
+@@ -1,6 +1,6 @@
+ <resources>
+-    <string name="app_name">PS PlayAnywhere</string>
+-    <string name="title_main">PS PlayAnywhere</string>
++    <string name="app_name">VYNUVO</string>
++    <string name="title_main">VYNUVO</string>
+     <string name="title_settings">Settings</string>
+     <string name="alert_message_standby_wakeup">The Console is currently in standby mode. Do you want to send a Wakeup packet instead of trying to connect immediately?</string>
+     <string name="alert_message_session_quit">Session has quit: %s</string>
+diff --git a/android/app/src/main/res/values/strings_vynuvo.xml b/android/app/src/main/res/values/strings_vynuvo.xml
+new file mode 100644
+index 00000000..4bd4666d
+--- /dev/null
++++ b/android/app/src/main/res/values/strings_vynuvo.xml
+@@ -0,0 +1,10 @@
++<resources>
++    <string name="vynuvo_tagline">All your games. One place.</string>
++    <string name="platform_playstation">PlayStation Remote Play</string>
++    <string name="platform_xbox">Xbox Cloud Gaming</string>
++    <string name="platform_pc">PC / Steam</string>
++    <string name="platform_coming_soon">Coming soon</string>
++    <string name="platform_xbox_details">Xbox Cloud Gaming is planned for a future release. Xbox sign-in and streaming are currently unavailable in VYNUVO.</string>
++    <string name="platform_pc_details">Streaming from your gaming PC, including Steam games, is planned for a future release. PC pairing and streaming are currently unavailable in VYNUVO.</string>
++    <string name="platform_preview_label">%1$s\n%2$s</string>
++</resources>

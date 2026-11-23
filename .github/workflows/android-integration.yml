@@ -1,4 +1,4 @@
-name: PS PlayAnywhere Android integration
+name: VYNUVO Android integration
 on:
   workflow_dispatch:
   push:
