@@ -1,9 +1,6 @@
 name: VYNUVO Android release
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths: ['.github/workflows/android-release.yml']
 
 concurrency: ps-playanywhere-android-release
 
@@ -59,10 +56,10 @@ jobs:
           set -euo pipefail
           cd artifact
           sha256sum --check SHA256SUMS.txt
-          grep -F "versionCode='14' versionName='0.1.13'" apk-badging.txt
-          cp signed.apk VYNUVO-0.1.13.apk
-          (cd ../source && bash tools/archive-source.sh ../artifact/VYNUVO-0.1.13-source.tar.gz)
-          sha256sum VYNUVO-0.1.13.apk VYNUVO-0.1.13-source.tar.gz > VYNUVO-0.1.13-SHA256.txt
-          gh release create v0.1.13 VYNUVO-0.1.13.apk VYNUVO-0.1.13-source.tar.gz VYNUVO-0.1.13-SHA256.txt \
+          grep -F "versionCode='15' versionName='0.1.14'" apk-badging.txt
+          cp signed.apk VYNUVO-0.1.14.apk
+          (cd ../source && bash tools/archive-source.sh ../artifact/VYNUVO-0.1.14-source.tar.gz)
+          sha256sum VYNUVO-0.1.14.apk VYNUVO-0.1.14-source.tar.gz > VYNUVO-0.1.14-SHA256.txt
+          gh release create v0.1.14 VYNUVO-0.1.14.apk VYNUVO-0.1.14-source.tar.gz VYNUVO-0.1.14-SHA256.txt \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "VYNUVO 0.1.13 (Android preview)" --notes-file ../source/docs/RELEASE-0.1.13.md --latest
+            --title "VYNUVO 0.1.14 (Android preview)" --notes-file ../source/docs/RELEASE-0.1.14.md --latest

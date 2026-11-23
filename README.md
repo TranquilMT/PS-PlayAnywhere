@@ -10,7 +10,7 @@ VYNUVO is an open-source Android streaming hub, formerly PS PlayAnywhere.
 | Xbox Cloud Gaming | Coming soon |
 | PC / Steam streaming | Coming soon |
 
-See the [0.1.13 release notes](docs/RELEASE-0.1.13.md) for the rebrand, Android update compatibility, and device verification status.
+See the [0.1.14 release notes](docs/RELEASE-0.1.14.md) for the rebrand, Android update compatibility, and device verification status.
 
 ## Objectives
 - Native PS5 streaming over local Wi-Fi and remote networks (4G/5G/external Wi-Fi).
@@ -30,7 +30,7 @@ export SOURCE_DATE_EPOCH="$(git -C engine/chiaki show -s --format=%ct HEAD)"
 gradle -p engine/chiaki/android :app:assembleDebug --dependency-verification strict
 ```
 
-The package ID is `com.tranquil.ps5remoteplay`. The current development version is `0.1.13` with version code `14`.
+The package ID is `com.tranquil.ps5remoteplay`. The current development version is `0.1.14` with version code `15`.
 
 See [ROADMAP.md](ROADMAP.md) for the implementation and verification checklist.
 

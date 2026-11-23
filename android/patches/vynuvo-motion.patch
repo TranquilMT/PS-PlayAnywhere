@@ -1,0 +1,406 @@
+diff --git a/android/app/build.gradle b/android/app/build.gradle
+index af0f9036..fc31e48c 100644
+--- a/android/app/build.gradle
++++ b/android/app/build.gradle
+@@ -28,8 +28,8 @@ android {
+         applicationId "com.tranquil.ps5remoteplay"
+         minSdk 24
+         targetSdk 35
+-        versionCode 14
+-        versionName "0.1.13"
++        versionCode 15
++        versionName "0.1.14"
+         externalNativeBuild {
+             cmake {
+                 arguments "-DCHIAKI_ENABLE_TESTS=OFF",
+diff --git a/android/app/src/main/java/com/metallic/chiaki/common/BrandMotion.kt b/android/app/src/main/java/com/metallic/chiaki/common/BrandMotion.kt
+new file mode 100644
+index 00000000..2dec4482
+--- /dev/null
++++ b/android/app/src/main/java/com/metallic/chiaki/common/BrandMotion.kt
+@@ -0,0 +1,20 @@
++// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
++package com.metallic.chiaki.common
++
++import android.animation.ValueAnimator
++import android.os.Build
++import android.provider.Settings
++import android.view.View
++import android.view.animation.DecelerateInterpolator
++
++fun View.motionEnabled(): Boolean =
++    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ValueAnimator.areAnimatorsEnabled()
++    else Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
++
++fun View.enterPanel() {
++    if (!motionEnabled()) return
++    alpha = 0f
++    translationY = 8f * resources.displayMetrics.density
++    animate().alpha(1f).translationY(0f).setDuration(190)
++        .setInterpolator(DecelerateInterpolator()).start()
++}
+diff --git a/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt b/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
+index 7e9c6c86..0c2d9569 100644
+--- a/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
++++ b/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
+@@ -2,12 +2,9 @@
+ 
+ package com.metallic.chiaki.main
+ 
+-import android.animation.ValueAnimator
+ import android.app.ActivityOptions
+ import android.content.Intent
+-import android.os.Build
+ import android.os.Bundle
+-import android.provider.Settings
+ import android.view.Menu
+ import android.view.MenuItem
+ import android.view.View
+@@ -50,7 +47,7 @@ class MainActivity : AppCompatActivity()
+ 		setContentView(binding.root)
+ 		configurePlatformPreview(binding.xboxPreview, R.string.platform_xbox, R.string.platform_xbox_details)
+ 		configurePlatformPreview(binding.pcPreview, R.string.platform_pc, R.string.platform_pc_details)
+-		if (savedInstanceState == null && motionEnabled())
++		if (savedInstanceState == null && binding.root.motionEnabled())
+ 			showBrandIntro()
+ 
+ 		title = ""
+@@ -91,10 +88,6 @@ class MainActivity : AppCompatActivity()
+ 		})
+ 	}
+ 
+-	private fun motionEnabled(): Boolean =
+-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) ValueAnimator.areAnimatorsEnabled()
+-		else Settings.Global.getFloat(contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) > 0f
+-
+ 	private fun configurePlatformPreview(button: TextView, title: Int, details: Int)
+ 	{
+ 		button.text = getString(R.string.platform_preview_label, getString(title), getString(R.string.platform_coming_soon))
+@@ -104,7 +97,7 @@ class MainActivity : AppCompatActivity()
+ 				.setMessage(details)
+ 				.setPositiveButton(android.R.string.ok, null)
+ 				.show()
+-			if (motionEnabled()) {
++			if (binding.root.motionEnabled()) {
+ 				dialog.window?.decorView?.let { panel ->
+ 					panel.alpha = 0f
+ 					panel.scaleX = 0.97f
+@@ -124,8 +117,12 @@ class MainActivity : AppCompatActivity()
+ 		mark.scaleX = 0.72f
+ 		mark.scaleY = 0.72f
+ 		mark.rotation = -14f
+-		reveal(mark, 0, 460)
+-		mark.animate().scaleX(1f).scaleY(1f).rotation(0f)
++		mark.alpha = 0f
++		mark.animate().alpha(1f).scaleX(1f).scaleY(1f).rotation(0f).setDuration(460)
++			.setInterpolator(DecelerateInterpolator()).start()
++		val accent = intro.findViewById<View>(R.id.introAccent)
++		accent.scaleX = 0f
++		accent.animate().scaleX(1f).setStartDelay(180).setDuration(320).start()
+ 		reveal(intro.findViewById(R.id.introWordmark), 100, 360)
+ 		reveal(intro.findViewById(R.id.introTagline), 180, 320)
+ 
+@@ -248,6 +245,7 @@ class MainActivity : AppCompatActivity()
+ 			fun connect() {
+ 				val connectInfo = ConnectInfo(host.isPS5, host.host, registeredHost.rpRegistKey, registeredHost.rpKey, Preferences(this).videoProfile)
+ 				val setup = DialogStreamSetupBinding.inflate(layoutInflater)
++				setup.root.enterPanel()
+ 				val defaults = getSharedPreferences("stream_options", MODE_PRIVATE)
+ 				setup.frameGenerationSwitch.isChecked = defaults.getBoolean(StreamActivity.EXTRA_FRAME_GENERATION, false)
+ 				setup.displayOnlySwitch.isChecked = defaults.getBoolean(StreamActivity.EXTRA_DISPLAY_ONLY, false)
+diff --git a/android/app/src/main/java/com/metallic/chiaki/manualconsole/EditManualConsoleActivity.kt b/android/app/src/main/java/com/metallic/chiaki/manualconsole/EditManualConsoleActivity.kt
+index 28c68f0a..5a7ad1bf 100644
+--- a/android/app/src/main/java/com/metallic/chiaki/manualconsole/EditManualConsoleActivity.kt
++++ b/android/app/src/main/java/com/metallic/chiaki/manualconsole/EditManualConsoleActivity.kt
+@@ -3,6 +3,7 @@
+ package com.metallic.chiaki.manualconsole
+ 
+ import android.content.Intent
++import com.metallic.chiaki.common.enterPanel
+ import android.os.Bundle
+ import android.view.View
+ import android.view.Window
+@@ -37,6 +38,7 @@ class EditManualConsoleActivity: AppCompatActivity(), RevealActivity
+ 		super.onCreate(savedInstanceState)
+ 		binding = ActivityEditManualBinding.inflate(layoutInflater)
+ 		setContentView(binding.root)
++		if (savedInstanceState == null) binding.titleTextView.enterPanel()
+ 		handleReveal()
+ 
+ 		viewModel = ViewModelProvider(this, viewModelFactory {
+diff --git a/android/app/src/main/java/com/metallic/chiaki/regist/RegistActivity.kt b/android/app/src/main/java/com/metallic/chiaki/regist/RegistActivity.kt
+index c59bee47..b2d0ac13 100644
+--- a/android/app/src/main/java/com/metallic/chiaki/regist/RegistActivity.kt
++++ b/android/app/src/main/java/com/metallic/chiaki/regist/RegistActivity.kt
+@@ -13,6 +13,7 @@ import kotlinx.coroutines.Dispatchers
+ import kotlinx.coroutines.launch
+ import kotlinx.coroutines.withContext
+ import java.util.UUID
++import com.metallic.chiaki.common.enterPanel
+ import android.os.Bundle
+ import android.util.Base64
+ import android.view.View
+@@ -52,6 +53,7 @@ class RegistActivity: AppCompatActivity(), RevealActivity
+ 		super.onCreate(savedInstanceState)
+ 		binding = ActivityRegistBinding.inflate(layoutInflater)
+ 		setContentView(binding.root)
++		if (savedInstanceState == null) binding.titleTextView.enterPanel()
+ 		handleReveal()
+ 
+ 		viewModel = ViewModelProvider(this).get(RegistViewModel::class.java)
+@@ -133,6 +135,7 @@ class RegistActivity: AppCompatActivity(), RevealActivity
+ 			viewModel.psnState = null
+ 			input.text.clear()
+ 			dialog.dismiss()
++			binding.psnPasteButton.setText(R.string.vynuvo_lookup)
+ 			binding.psnPasteButton.isEnabled = false
+ 			binding.psnSignInButton.isEnabled = false
+ 			binding.registButton.isEnabled = false
+@@ -145,6 +148,7 @@ class RegistActivity: AppCompatActivity(), RevealActivity
+ 					binding.psnIdEditText.error = null
+ 					binding.pinEditText.requestFocus()
+ 				}
++				binding.psnPasteButton.setText(R.string.psn_paste_redirect)
+ 				binding.psnPasteButton.isEnabled = true
+ 				binding.psnSignInButton.isEnabled = true
+ 				binding.registButton.isEnabled = true
+diff --git a/android/app/src/main/java/com/metallic/chiaki/regist/RegistExecuteActivity.kt b/android/app/src/main/java/com/metallic/chiaki/regist/RegistExecuteActivity.kt
+index 645724d9..d3cabf53 100644
+--- a/android/app/src/main/java/com/metallic/chiaki/regist/RegistExecuteActivity.kt
++++ b/android/app/src/main/java/com/metallic/chiaki/regist/RegistExecuteActivity.kt
+@@ -78,6 +78,11 @@ class RegistExecuteActivity: AppCompatActivity()
+ 					binding.infoTextView.visibility = View.GONE
+ 					setResult(Activity.RESULT_CANCELED)
+ 				}
++				RegistExecuteViewModel.State.RUNNING ->
++				{
++					binding.infoTextView.visibility = View.VISIBLE
++					binding.infoTextView.setText(R.string.vynuvo_pairing)
++				}
+ 				else -> binding.infoTextView.visibility = View.GONE
+ 			}
+ 		})
+diff --git a/android/app/src/main/java/com/metallic/chiaki/settings/SettingsActivity.kt b/android/app/src/main/java/com/metallic/chiaki/settings/SettingsActivity.kt
+index 1cf224fd..bf0e066b 100644
+--- a/android/app/src/main/java/com/metallic/chiaki/settings/SettingsActivity.kt
++++ b/android/app/src/main/java/com/metallic/chiaki/settings/SettingsActivity.kt
+@@ -3,6 +3,7 @@
+ package com.metallic.chiaki.settings
+ 
+ import android.content.res.Resources
++import com.metallic.chiaki.common.enterPanel
+ import android.os.Bundle
+ import androidx.appcompat.app.AppCompatActivity
+ import androidx.fragment.app.Fragment
+@@ -25,6 +26,7 @@ class SettingsActivity: AppCompatActivity(), PreferenceFragmentCompat.OnPreferen
+ 		super.onCreate(savedInstanceState)
+ 		binding = ActivitySettingsBinding.inflate(layoutInflater)
+ 		setContentView(binding.root)
++		if (savedInstanceState == null) binding.settingsFragment.enterPanel()
+ 		title = ""
+ 		setSupportActionBar(binding.toolbar)
+ 
+diff --git a/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt b/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt
+index d1f36870..b23db998 100644
+--- a/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt
++++ b/android/app/src/main/java/com/metallic/chiaki/stream/StreamActivity.kt
+@@ -2,6 +2,8 @@
+ 
+ package com.metallic.chiaki.stream
+ 
++import com.metallic.chiaki.common.enterPanel
++
+ import android.animation.Animator
+ import android.animation.AnimatorListenerAdapter
+ import android.app.AlertDialog
+@@ -298,7 +300,14 @@ class StreamActivity : AppCompatActivity()
+ 
+ 	private fun stateChanged(state: StreamState)
+ 	{
+-		binding.progressBar.visibility = if(state == StreamStateConnecting) View.VISIBLE else View.GONE
++		val loading = binding.connectionLoading
++		if (state == StreamStateConnecting && loading.visibility != View.VISIBLE) {
++			loading.visibility = View.VISIBLE
++			loading.enterPanel()
++		} else if (state != StreamStateConnecting) {
++			loading.animate().cancel()
++			loading.visibility = View.GONE
++		}
+ 
+ 		when(state)
+ 		{
+diff --git a/android/app/src/main/res/drawable/ic_playanywhere_launcher.xml b/android/app/src/main/res/drawable/ic_playanywhere_launcher.xml
+index 7908acda..fc8e34e7 100644
+--- a/android/app/src/main/res/drawable/ic_playanywhere_launcher.xml
++++ b/android/app/src/main/res/drawable/ic_playanywhere_launcher.xml
+@@ -3,7 +3,8 @@
+     android:width="108dp" android:height="108dp"
+     android:viewportWidth="108" android:viewportHeight="108">
+     <path android:fillColor="#111329" android:pathData="M24,0H84Q108,0 108,24V84Q108,108 84,108H24Q0,108 0,84V24Q0,0 24,0Z" />
+-    <path android:fillColor="#A698FF" android:pathData="M23,30H39L54,63L48,79Z" />
+-    <path android:fillColor="#64F5D4" android:pathData="M84,30H68L46,79H61Z" />
+-    <path android:fillColor="#D8FFF6" android:pathData="M77,43L84,30H94Z" />
++    <path android:fillColor="#AB9CFF" android:pathData="M17,29H32L52,59L45,72Z" />
++    <path android:fillColor="#786AE0" android:pathData="M32,29L56,47L52,59Z" />
++    <path android:fillColor="#59EEC8" android:pathData="M44,73L73,29H89L56,80Z" />
++    <path android:fillColor="#D3FFF2" android:pathData="M73,29L89,29L77,44L63,44Z" />
+ </vector>
+diff --git a/android/app/src/main/res/drawable/ic_playanywhere_mark.xml b/android/app/src/main/res/drawable/ic_playanywhere_mark.xml
+index 04d4b73b..e311a009 100644
+--- a/android/app/src/main/res/drawable/ic_playanywhere_mark.xml
++++ b/android/app/src/main/res/drawable/ic_playanywhere_mark.xml
+@@ -2,7 +2,8 @@
+ <vector xmlns:android="http://schemas.android.com/apk/res/android"
+     android:width="32dp" android:height="32dp"
+     android:viewportWidth="108" android:viewportHeight="108">
+-    <path android:fillColor="#A698FF" android:pathData="M23,30H39L54,63L48,79Z" />
+-    <path android:fillColor="#64F5D4" android:pathData="M84,30H68L46,79H61Z" />
+-    <path android:fillColor="#D8FFF6" android:pathData="M77,43L84,30H94Z" />
++    <path android:fillColor="#AB9CFF" android:pathData="M17,29H32L52,59L45,72Z" />
++    <path android:fillColor="#786AE0" android:pathData="M32,29L56,47L52,59Z" />
++    <path android:fillColor="#59EEC8" android:pathData="M44,73L73,29H89L56,80Z" />
++    <path android:fillColor="#D3FFF2" android:pathData="M73,29L89,29L77,44L63,44Z" />
+ </vector>
+diff --git a/android/app/src/main/res/drawable/ic_playanywhere_splash.xml b/android/app/src/main/res/drawable/ic_playanywhere_splash.xml
+index d50a11b1..0e4f0141 100644
+--- a/android/app/src/main/res/drawable/ic_playanywhere_splash.xml
++++ b/android/app/src/main/res/drawable/ic_playanywhere_splash.xml
+@@ -2,7 +2,8 @@
+ <vector xmlns:android="http://schemas.android.com/apk/res/android"
+     android:width="108dp" android:height="108dp"
+     android:viewportWidth="108" android:viewportHeight="108">
+-    <path android:fillColor="#A698FF" android:pathData="M23,30H39L54,63L48,79Z" />
+-    <path android:fillColor="#64F5D4" android:pathData="M84,30H68L46,79H61Z" />
+-    <path android:fillColor="#D8FFF6" android:pathData="M77,43L84,30H94Z" />
++    <path android:fillColor="#AB9CFF" android:pathData="M17,29H32L52,59L45,72Z" />
++    <path android:fillColor="#786AE0" android:pathData="M32,29L56,47L52,59Z" />
++    <path android:fillColor="#59EEC8" android:pathData="M44,73L73,29H89L56,80Z" />
++    <path android:fillColor="#D3FFF2" android:pathData="M73,29L89,29L77,44L63,44Z" />
+ </vector>
+diff --git a/android/app/src/main/res/drawable/vynuvo_loading_background.xml b/android/app/src/main/res/drawable/vynuvo_loading_background.xml
+new file mode 100644
+index 00000000..1f28888b
+--- /dev/null
++++ b/android/app/src/main/res/drawable/vynuvo_loading_background.xml
+@@ -0,0 +1,4 @@
++<shape xmlns:android="http://schemas.android.com/apk/res/android">
++    <gradient android:type="linear" android:angle="315"
++        android:startColor="#262445" android:endColor="#101525" />
++</shape>
+diff --git a/android/app/src/main/res/layout/activity_regist_execute.xml b/android/app/src/main/res/layout/activity_regist_execute.xml
+index 74669c52..5abe5ff7 100644
+--- a/android/app/src/main/res/layout/activity_regist_execute.xml
++++ b/android/app/src/main/res/layout/activity_regist_execute.xml
+@@ -13,11 +13,12 @@
+         android:id="@+id/iconImageView"
+         android:layout_width="match_parent"
+         android:layout_height="32dp"
+-        android:src="@drawable/ic_regist_console"
++        android:importantForAccessibility="no"
++        android:src="@drawable/ic_playanywhere_mark"
+         app:layout_constraintTop_toTopOf="parent"
+         app:layout_constraintLeft_toLeftOf="parent"
+         app:layout_constraintRight_toRightOf="parent"
+-        app:tint="?attr/colorOnPrimary" />
++         />
+ 
+     <com.google.android.material.textview.MaterialTextView
+         android:id="@+id/logTextView"
+@@ -47,8 +48,10 @@
+     <ProgressBar
+         android:id="@+id/progressBar"
+         android:visibility="gone"
+-        android:layout_width="48dp"
+-        android:layout_height="48dp"
++        android:layout_width="28dp"
++        android:layout_height="28dp"
++        android:layout_marginBottom="10dp"
++        android:indeterminateTint="#59EEC8"
+         app:layout_constraintStart_toStartOf="parent"
+         app:layout_constraintBottom_toBottomOf="parent" />
+ 
+@@ -56,10 +59,11 @@
+         android:id="@+id/infoTextView"
+         android:layout_width="0dp"
+         android:layout_height="48dp"
+-        app:layout_constraintStart_toStartOf="parent"
++        app:layout_constraintStart_toEndOf="@id/progressBar"
+         app:layout_constraintBottom_toBottomOf="parent"
+         app:layout_constraintEnd_toStartOf="@id/shareLogButton"
+         android:gravity="center_vertical"
++        android:accessibilityLiveRegion="polite"
+         android:paddingStart="8dp"
+         android:layout_marginEnd="8dp"
+         tools:text="Tried, but failed miserably" />
+diff --git a/android/app/src/main/res/layout/activity_stream.xml b/android/app/src/main/res/layout/activity_stream.xml
+index 8bd6f1f7..9aefaf39 100644
+--- a/android/app/src/main/res/layout/activity_stream.xml
++++ b/android/app/src/main/res/layout/activity_stream.xml
+@@ -20,12 +20,6 @@
+             android:layout_height="wrap_content"/>
+     </com.metallic.chiaki.stream.AspectRatioFrameLayout>
+ 
+-    <ProgressBar
+-        android:id="@+id/progressBar"
+-        android:layout_width="wrap_content"
+-        android:layout_height="wrap_content"
+-        android:layout_gravity="center"/>
+-
+     <fragment
+         android:id="@+id/controlsFragment"
+         android:name="com.metallic.chiaki.touchcontrols.DefaultTouchControlsFragment"
+@@ -38,6 +32,23 @@
+         android:layout_width="match_parent"
+         android:layout_height="match_parent"/>
+ 
++    <LinearLayout
++        android:id="@+id/connectionLoading"
++        android:layout_width="match_parent" android:layout_height="match_parent"
++        android:background="@drawable/vynuvo_loading_background"
++        android:orientation="vertical" android:gravity="center" android:visibility="gone"
++        android:accessibilityLiveRegion="polite">
++        <ImageView android:layout_width="76dp" android:layout_height="76dp"
++            android:importantForAccessibility="no" android:src="@drawable/ic_playanywhere_mark" />
++        <TextView android:layout_width="wrap_content" android:layout_height="wrap_content"
++            android:text="@string/vynuvo_connecting" android:textSize="20sp"
++            android:fontFamily="sans-serif-medium" android:textColor="#F3F6FF" />
++        <ProgressBar style="?android:attr/progressBarStyleHorizontal"
++            android:layout_width="120dp" android:layout_height="4dp"
++            android:layout_marginTop="16dp" android:indeterminate="true"
++            android:indeterminateTint="#59EEC8" android:importantForAccessibility="no" />
++    </LinearLayout>
++
+     <androidx.constraintlayout.widget.ConstraintLayout
+         android:id="@+id/overlay"
+         android:layout_width="match_parent"
+diff --git a/android/app/src/main/res/layout/playanywhere_intro.xml b/android/app/src/main/res/layout/playanywhere_intro.xml
+index e45e4265..8a7f1715 100644
+--- a/android/app/src/main/res/layout/playanywhere_intro.xml
++++ b/android/app/src/main/res/layout/playanywhere_intro.xml
+@@ -1,6 +1,6 @@
+ <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+     android:layout_width="match_parent" android:layout_height="match_parent"
+-    android:orientation="vertical" android:gravity="center" android:background="#111329"
++    android:orientation="vertical" android:gravity="center" android:background="@drawable/vynuvo_loading_background"
+     android:importantForAccessibility="noHideDescendants">
+     <ImageView android:id="@+id/introMark" android:layout_width="140dp"
+         android:layout_height="112dp" android:scaleType="fitCenter"
+@@ -12,4 +12,6 @@
+     <TextView android:id="@+id/introTagline" android:layout_width="wrap_content"
+         android:layout_height="wrap_content" android:layout_marginTop="4dp"
+         android:text="@string/vynuvo_tagline" android:textSize="15sp" android:textColor="#BCC4E0" />
++    <View android:id="@+id/introAccent" android:layout_width="56dp"
++        android:layout_height="2dp" android:layout_marginTop="16dp" android:background="#59EEC8" />
+ </LinearLayout>
+diff --git a/android/app/src/main/res/values/strings_vynuvo.xml b/android/app/src/main/res/values/strings_vynuvo.xml
+index 4bd4666d..3314a0bd 100644
+--- a/android/app/src/main/res/values/strings_vynuvo.xml
++++ b/android/app/src/main/res/values/strings_vynuvo.xml
+@@ -7,4 +7,7 @@
+     <string name="platform_xbox_details">Xbox Cloud Gaming is planned for a future release. Xbox sign-in and streaming are currently unavailable in VYNUVO.</string>
+     <string name="platform_pc_details">Streaming from your gaming PC, including Steam games, is planned for a future release. PC pairing and streaming are currently unavailable in VYNUVO.</string>
+     <string name="platform_preview_label">%1$s\n%2$s</string>
++    <string name="vynuvo_connecting">Connecting to your console…</string>
++    <string name="vynuvo_pairing">Pairing with your console…</string>
++    <string name="vynuvo_lookup">Retrieving account ID…</string>
+ </resources>

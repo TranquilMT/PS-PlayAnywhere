@@ -134,3 +134,6 @@ The Phase 0 build artifact is an upstream Chiaki debug reference used to verify 
 - [ ] Implement and test Xbox Cloud Gaming authentication, controller input and playback.
 - [ ] Select a PC streaming protocol and validate host pairing, controller input and Steam game launches.
 - [ ] Verify the rebrand on a physical Android device, including upgrading from 0.1.12 and opening an existing PlayStation pairing.
+
+- [x] Add registration, account lookup and stream connection feedback driven by app state.
+- [ ] Verify reconnect, PIN prompts and reduced motion on a physical Android device.
