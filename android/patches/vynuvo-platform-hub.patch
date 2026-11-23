@@ -27,10 +27,19 @@ index 465a2a78..25d92cda 100644
  			it.stateIndicatorImageView.setImageResource(
  				when
 diff --git a/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt b/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
-index 0c2d9569..cc304fce 100644
+index 0c2d9569..a7a07953 100644
 --- a/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
 +++ b/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
-@@ -38,6 +38,7 @@ class MainActivity : AppCompatActivity()
+@@ -11,6 +11,8 @@ import android.view.View
+ import android.view.ViewGroup
+ import android.view.animation.DecelerateInterpolator
+ import android.widget.TextView
++import androidx.core.view.ViewCompat
++import androidx.core.view.WindowInsetsCompat
+ import androidx.activity.addCallback
+ import androidx.appcompat.app.AppCompatActivity
+ import androidx.lifecycle.Observer
+@@ -38,6 +40,7 @@ class MainActivity : AppCompatActivity()
  	private lateinit var viewModel: MainViewModel
  
  	private lateinit var binding: ActivityMainBinding
@@ -38,16 +47,22 @@ index 0c2d9569..cc304fce 100644
  	private var discoveryMenuItem: MenuItem? = null
  
  	override fun onCreate(savedInstanceState: Bundle?)
-@@ -45,6 +46,8 @@ class MainActivity : AppCompatActivity()
+@@ -45,6 +48,14 @@ class MainActivity : AppCompatActivity()
  		super.onCreate(savedInstanceState)
  		binding = ActivityMainBinding.inflate(layoutInflater)
  		setContentView(binding.root)
++		ViewCompat.setOnApplyWindowInsetsListener(binding.root) { view, insets ->
++			val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
++			view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
++			insets
++		}
++		ViewCompat.requestApplyInsets(binding.root)
 +		platformLabel(binding.playPlatform, R.string.hub_ps, R.string.hub_remote)
 +		binding.playPlatform.setOnClickListener { showPicker(true) }
  		configurePlatformPreview(binding.xboxPreview, R.string.platform_xbox, R.string.platform_xbox_details)
  		configurePlatformPreview(binding.pcPreview, R.string.platform_pc, R.string.platform_pc_details)
  		if (savedInstanceState == null && binding.root.motionEnabled())
-@@ -72,6 +75,7 @@ class MainActivity : AppCompatActivity()
+@@ -72,6 +83,7 @@ class MainActivity : AppCompatActivity()
  			.get(MainViewModel::class.java)
  
  		val recyclerViewAdapter = DisplayHostRecyclerViewAdapter(this::hostTriggered, this::wakeupHost, this::editHost, this::deleteHost)
@@ -55,7 +70,7 @@ index 0c2d9569..cc304fce 100644
  		binding.hostsRecyclerView.adapter = recyclerViewAdapter
  		binding.hostsRecyclerView.layoutManager = LinearLayoutManager(this)
  		viewModel.displayHosts.observe(this, Observer {
-@@ -88,9 +92,38 @@ class MainActivity : AppCompatActivity()
+@@ -88,9 +100,38 @@ class MainActivity : AppCompatActivity()
  		})
  	}
  
@@ -95,7 +110,7 @@ index 0c2d9569..cc304fce 100644
  		button.setOnClickListener {
  			val dialog = MaterialAlertDialogBuilder(this)
  				.setTitle(title)
-@@ -142,7 +175,7 @@ class MainActivity : AppCompatActivity()
+@@ -142,7 +183,7 @@ class MainActivity : AppCompatActivity()
  
  	private fun updateEmptyInfo()
  	{
@@ -104,7 +119,7 @@ index 0c2d9569..cc304fce 100644
  		{
  			binding.emptyInfoLayout.visibility = View.VISIBLE
  			val discoveryActive = viewModel.discoveryActive.value ?: false
-@@ -178,6 +211,7 @@ class MainActivity : AppCompatActivity()
+@@ -178,6 +219,7 @@ class MainActivity : AppCompatActivity()
  			{
  				expandFloatingActionButton(false)
  			}
@@ -112,7 +127,7 @@ index 0c2d9569..cc304fce 100644
  			else
  			{
  				isEnabled = false
-@@ -191,6 +225,7 @@ class MainActivity : AppCompatActivity()
+@@ -191,6 +233,7 @@ class MainActivity : AppCompatActivity()
  		menuInflater.inflate(R.menu.main, menu)
  		val discoveryItem = menu.findItem(R.id.action_discover)
  		discoveryMenuItem = discoveryItem
@@ -120,7 +135,7 @@ index 0c2d9569..cc304fce 100644
  		val discoveryActive = viewModel.discoveryActive.value ?: false
  		updateDiscoveryMenuItem(discoveryItem, discoveryActive)
  		return true
-@@ -204,6 +239,7 @@ class MainActivity : AppCompatActivity()
+@@ -204,6 +247,7 @@ class MainActivity : AppCompatActivity()
  
  	override fun onOptionsItemSelected(item: MenuItem): Boolean = when(item.itemId)
  	{
