@@ -158,3 +158,7 @@ The GPU midpoint shader uses a logistic blend trained on 100 synthetic scenes, p
 ## Version 0.1.13
 
 VYNUVO branding, an animated launch sequence, and Xbox Cloud Gaming and PC / Steam previews are implemented in the Android integration patch. The pinned native Chiaki-ng engine remains the PlayStation provider. Live device coverage is tracked in the roadmap.
+
+- The [Android integration run](https://github.com/TranquilMT/VYNUVO/actions/runs/45140617761) compiled the APK, passed unit tests, and verified native 16 KB alignment.
+- The [latest release](https://github.com/TranquilMT/VYNUVO/releases/tag/v0.1.13) publishes the APK, full corresponding source, and SHA-256 manifest. The signed APK matches the v0.1.12 certificate and retains `com.tranquil.ps5remoteplay` at version code 14. GitHub asset digests matched the verified local files.
+- Signing and publishing were completed outside CI. The automated signing job requires the repository's signing secrets. Physical Android upgrade, PS5 pairing and live streaming still need device verification.
