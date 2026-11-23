@@ -174,3 +174,7 @@ Implemented separate platform controls, PlayStation console selection, compact h
 ## 0.1.16 Xbox player selection
 
 The Xbox hub opens Xbox.com or the installed Better xCloud app. Account sign-in, controller input and live streaming still need a signed-in device check.
+
+## Embedded Xbox player
+
+0.1.17 replaces external Xbox launches with a VYNUVO WebView and bundles the pinned full Better xCloud 6.7.13 userscript. See docs/RELEASE-0.1.17.md for runtime coverage.

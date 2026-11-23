@@ -1,3 +1,6 @@
 [submodule "chiaki"]
 	path = engine/chiaki
 	url = https://github.com/chiaki-ng/chiaki-ng.git
+[submodule "engine/better-xcloud"]
+	path = engine/better-xcloud
+	url = https://github.com/redphx/better-xcloud.git

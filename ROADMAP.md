@@ -132,6 +132,7 @@ The Phase 0 build artifact is an upstream Chiaki debug reference used to verify 
 
 - [x] Show Xbox Cloud Gaming and PC / Steam as Coming soon in the Android hub.
 - [x] Add Xbox.com and Better xCloud player selection to the native Android hub.
+- [x] Embed the Xbox web player and pinned Better xCloud userscript in the APK.
 - [ ] Implement and test Xbox Cloud Gaming authentication, controller input and playback.
 - [ ] Select a PC streaming protocol and validate host pairing, controller input and Steam game launches.
 - [ ] Verify the rebrand on a physical Android device, including upgrading from 0.1.12 and opening an existing PlayStation pairing.

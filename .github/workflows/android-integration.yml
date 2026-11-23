@@ -6,6 +6,7 @@ on:
       - '.github/workflows/android-integration.yml'
       - 'android/**'
       - 'engine/chiaki'
+      - 'engine/better-xcloud'
       - '.gitmodules'
       - 'build-support/**'
 jobs:
