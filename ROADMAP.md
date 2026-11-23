@@ -137,3 +137,5 @@ The Phase 0 build artifact is an upstream Chiaki debug reference used to verify 
 
 - [x] Add registration, account lookup and stream connection feedback driven by app state.
 - [ ] Verify reconnect, PIN prompts and reduced motion on a physical Android device.
+
+- [x] Separate the platform hub from PlayStation console selection and add per-platform press feedback.

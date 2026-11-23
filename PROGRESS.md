@@ -166,3 +166,7 @@ VYNUVO branding, an animated launch sequence, and Xbox Cloud Gaming and PC / Ste
 ## Version 0.1.14
 
 Added a folded V mark, revised animated intro and entrance effects for settings, registration, manual console entry and streaming options. The connection, pairing and account lookup screens now show the current operation. Live console testing remains pending.
+
+## Version 0.1.15
+
+Implemented separate platform controls, PlayStation console selection, compact host cards and a shared slate/mint theme. Restoring the picker and testing the flows with a physical console remain device checks.
