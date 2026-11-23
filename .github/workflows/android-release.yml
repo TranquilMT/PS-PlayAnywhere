@@ -56,10 +56,10 @@ jobs:
           set -euo pipefail
           cd artifact
           sha256sum --check SHA256SUMS.txt
-          grep -F "versionCode='16' versionName='0.1.15'" apk-badging.txt
-          cp signed.apk VYNUVO-0.1.15.apk
-          (cd ../source && bash tools/archive-source.sh ../artifact/VYNUVO-0.1.15-source.tar.gz)
-          sha256sum VYNUVO-0.1.15.apk VYNUVO-0.1.15-source.tar.gz > VYNUVO-0.1.15-SHA256.txt
-          gh release create v0.1.15 VYNUVO-0.1.15.apk VYNUVO-0.1.15-source.tar.gz VYNUVO-0.1.15-SHA256.txt \
+          grep -F "versionCode='17' versionName='0.1.16'" apk-badging.txt
+          cp signed.apk VYNUVO-0.1.16.apk
+          (cd ../source && bash tools/archive-source.sh ../artifact/VYNUVO-0.1.16-source.tar.gz)
+          sha256sum VYNUVO-0.1.16.apk VYNUVO-0.1.16-source.tar.gz > VYNUVO-0.1.16-SHA256.txt
+          gh release create v0.1.16 VYNUVO-0.1.16.apk VYNUVO-0.1.16-source.tar.gz VYNUVO-0.1.16-SHA256.txt \
             --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" \
-            --title "VYNUVO 0.1.15 (Android preview)" --notes-file ../source/docs/RELEASE-0.1.15.md --latest
+            --title "VYNUVO 0.1.16 (Android preview)" --notes-file ../source/docs/RELEASE-0.1.16.md --latest

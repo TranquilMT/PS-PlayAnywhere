@@ -170,3 +170,7 @@ Added a folded V mark, revised animated intro and entrance effects for settings,
 ## Version 0.1.15
 
 Implemented separate platform controls, PlayStation console selection, compact host cards and a shared slate/mint theme. Restoring the picker and testing the flows with a physical console remain device checks.
+
+## 0.1.16 Xbox player selection
+
+The Xbox hub opens Xbox.com or the installed Better xCloud app. Account sign-in, controller input and live streaming still need a signed-in device check.

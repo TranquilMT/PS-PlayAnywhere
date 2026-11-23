@@ -7,10 +7,10 @@ VYNUVO is an open-source Android streaming hub, formerly PS PlayAnywhere.
 | Platform | Status |
 | --- | --- |
 | PlayStation Remote Play | Native streaming through the pinned Chiaki-ng engine |
-| Xbox Cloud Gaming | Coming soon |
+| Xbox Cloud Gaming | Xbox.com web player or installed Better xCloud companion |
 | PC / Steam streaming | Coming soon |
 
-See the [0.1.15 release notes](docs/RELEASE-0.1.15.md) for the rebrand, Android update compatibility, and device verification status.
+See the [0.1.16 release notes](docs/RELEASE-0.1.16.md) for Xbox player options and verification scope.
 
 ## Objectives
 - Native PS5 streaming over local Wi-Fi and remote networks (4G/5G/external Wi-Fi).

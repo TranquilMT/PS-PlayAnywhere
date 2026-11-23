@@ -11,3 +11,4 @@ git -C "$source_dir" apply \
 git -C "$source_dir" apply "$patch_dir/vynuvo-branding.patch"
 git -C "$source_dir" apply "$patch_dir/vynuvo-motion.patch"
 git -C "$source_dir" apply "$patch_dir/vynuvo-platform-hub.patch"
+git -C "$source_dir" apply "$patch_dir/vynuvo-xbox.patch"

@@ -1,0 +1,148 @@
+diff --git a/android/app/build.gradle b/android/app/build.gradle
+index 058f7ec..b169097 100644
+--- a/android/app/build.gradle
++++ b/android/app/build.gradle
+@@ -28,8 +28,8 @@ android {
+         applicationId "com.tranquil.ps5remoteplay"
+         minSdk 24
+         targetSdk 35
+-        versionCode 16
+-        versionName "0.1.15"
++        versionCode 17
++        versionName "0.1.16"
+         externalNativeBuild {
+             cmake {
+                 arguments "-DCHIAKI_ENABLE_TESTS=OFF",
+diff --git a/android/app/src/main/AndroidManifest.xml b/android/app/src/main/AndroidManifest.xml
+index 90170ca..cd08720 100644
+--- a/android/app/src/main/AndroidManifest.xml
++++ b/android/app/src/main/AndroidManifest.xml
+@@ -14,6 +14,8 @@
+     <uses-permission android:name="android.permission.VIBRATE" />
+     <uses-permission android:name="android.permission.HIGH_SAMPLING_RATE_SENSORS" />
+ 
++    <queries><package android:name="com.redphx.betterxc" /></queries>
++
+     <application
+         android:allowBackup="true"
+         android:icon="@drawable/ic_playanywhere_launcher"
+@@ -36,6 +38,7 @@
+                 />
+         </provider>
+ 
++        <activity android:name=".main.XboxActivity" android:exported="false" />
+         <activity android:name=".main.MainActivity"
+             android:theme="@style/PlayAnywhereLaunchTheme"
+             android:configChanges="keyboard|keyboardHidden|orientation|screenSize"
+diff --git a/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt b/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
+index a7a0795..8b7bc21 100644
+--- a/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
++++ b/android/app/src/main/java/com/metallic/chiaki/main/MainActivity.kt
+@@ -56,7 +56,8 @@ class MainActivity : AppCompatActivity()
+ 		ViewCompat.requestApplyInsets(binding.root)
+ 		platformLabel(binding.playPlatform, R.string.hub_ps, R.string.hub_remote)
+ 		binding.playPlatform.setOnClickListener { showPicker(true) }
+-		configurePlatformPreview(binding.xboxPreview, R.string.platform_xbox, R.string.platform_xbox_details)
++		platformLabel(binding.xboxPreview, R.string.platform_xbox, R.string.xbox_subtitle)
++		binding.xboxPreview.setOnClickListener { startActivity(Intent(this, XboxActivity::class.java)) }
+ 		configurePlatformPreview(binding.pcPreview, R.string.platform_pc, R.string.platform_pc_details)
+ 		if (savedInstanceState == null && binding.root.motionEnabled())
+ 			showBrandIntro()
+diff --git a/android/app/src/main/java/com/metallic/chiaki/main/XboxActivity.kt b/android/app/src/main/java/com/metallic/chiaki/main/XboxActivity.kt
+new file mode 100644
+index 0000000..6de863b
+--- /dev/null
++++ b/android/app/src/main/java/com/metallic/chiaki/main/XboxActivity.kt
+@@ -0,0 +1,54 @@
++// SPDX-License-Identifier: LicenseRef-AGPL-3.0-only-OpenSSL
++package com.metallic.chiaki.main
++
++import android.content.ActivityNotFoundException
++import android.content.Intent
++import android.net.Uri
++import android.os.Bundle
++import android.widget.Button
++import android.widget.Toast
++import androidx.appcompat.app.AppCompatActivity
++import androidx.core.view.ViewCompat
++import androidx.core.view.WindowInsetsCompat
++import com.metallic.chiaki.R
++
++class XboxActivity : AppCompatActivity() {
++    private val companionPackage = "com.redphx.betterxc"
++
++    override fun onCreate(savedInstanceState: Bundle?) {
++        super.onCreate(savedInstanceState)
++        setContentView(R.layout.activity_xbox)
++        supportActionBar?.hide()
++        val panel = findViewById<android.view.View>(R.id.xboxPanel)
++        ViewCompat.setOnApplyWindowInsetsListener(panel) { view, insets ->
++            val bars = insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout())
++            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
++            insets
++        }
++        findViewById<Button>(R.id.xboxBack).setOnClickListener { finish() }
++        findViewById<Button>(R.id.xboxWeb).setOnClickListener { open(web("https://www.xbox.com/play")) }
++        findViewById<Button>(R.id.xboxCompanion).setOnClickListener {
++            open(packageManager.getLaunchIntentForPackage(companionPackage)
++                ?: web("https://github.com/redphx/better-xcloud-android/releases"))
++        }
++    }
++
++    override fun onResume() {
++        super.onResume()
++        val installed = packageManager.getLaunchIntentForPackage(companionPackage) != null
++        findViewById<Button>(R.id.xboxCompanion).setText(
++            if (installed) R.string.xbox_companion_launch else R.string.xbox_companion_get)
++    }
++
++    private fun web(url: String) = Intent(Intent.ACTION_VIEW, Uri.parse(url)).apply {
++        addCategory(Intent.CATEGORY_BROWSABLE)
++    }
++
++    private fun open(intent: Intent) {
++        try {
++            startActivity(intent)
++        } catch (e: ActivityNotFoundException) {
++            Toast.makeText(this, R.string.xbox_open_error, Toast.LENGTH_LONG).show()
++        }
++    }
++}
+diff --git a/android/app/src/main/res/layout/activity_xbox.xml b/android/app/src/main/res/layout/activity_xbox.xml
+new file mode 100644
+index 0000000..6dc7d62
+--- /dev/null
++++ b/android/app/src/main/res/layout/activity_xbox.xml
+@@ -0,0 +1,13 @@
++<?xml version="1.0" ?>
++<ScrollView xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto" android:id="@+id/xboxPanel" android:layout_width="match_parent" android:layout_height="match_parent" android:fillViewport="true" android:background="#0D1915">
++    <LinearLayout android:orientation="vertical" android:padding="24dp" android:layout_width="match_parent" android:layout_height="wrap_content">
++        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/xbox_title" android:textSize="32sp" android:textColor="#EAF8ED" android:layout_marginTop="12dp"/>
++        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/xbox_intro" android:textSize="16sp" android:textColor="#BDCEC3" android:layout_marginTop="12dp"/>
++        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/xbox_web_desc" android:textSize="16sp" android:textColor="#EAF8ED" android:layout_marginTop="12dp"/>
++        <com.google.android.material.button.MaterialButton android:id="@+id/xboxWeb" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="52dp" android:layout_marginTop="12dp" android:text="@string/xbox_web" android:textAllCaps="false" android:textColor="#102117" app:backgroundTint="#A3E5AF" android:stateListAnimator="@animator/platform_press"/>
++        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/xbox_companion_title" android:textSize="23sp" android:textColor="#EAF8ED" android:layout_marginTop="12dp"/>
++        <TextView android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/xbox_companion_desc" android:textSize="16sp" android:textColor="#BDCEC3" android:layout_marginTop="12dp"/>
++        <com.google.android.material.button.MaterialButton android:id="@+id/xboxCompanion" android:layout_width="match_parent" android:layout_height="wrap_content" android:minHeight="52dp" android:layout_marginTop="12dp" android:text="@string/xbox_companion_get" android:textAllCaps="false" android:textColor="#102117" app:backgroundTint="#A3E5AF" android:stateListAnimator="@animator/platform_press"/>
++        <Button android:id="@+id/xboxBack" style="?android:attr/borderlessButtonStyle" android:textColor="#C8DACF" android:layout_marginTop="20dp" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/xbox_back"/>
++    </LinearLayout>
++</ScrollView>
+diff --git a/android/app/src/main/res/values/xbox.xml b/android/app/src/main/res/values/xbox.xml
+new file mode 100644
+index 0000000..abfa887
+--- /dev/null
++++ b/android/app/src/main/res/values/xbox.xml
+@@ -0,0 +1,13 @@
++<resources>
++    <string name="xbox_subtitle">Play in the cloud</string>
++    <string name="xbox_back">Back to platforms</string>
++    <string name="xbox_title">Xbox Cloud Gaming</string>
++    <string name="xbox_intro">Choose where to play. Sign in with your Microsoft account in the player you open.</string>
++    <string name="xbox_web">Play on Xbox.com</string>
++    <string name="xbox_web_desc">Open the Xbox cloud library in your browser.</string>
++    <string name="xbox_companion_title">Better xCloud</string>
++    <string name="xbox_companion_desc">Use the Android companion for its controller and streaming options.</string>
++    <string name="xbox_companion_get">Get Better xCloud</string>
++    <string name="xbox_companion_launch">Open Better xCloud</string>
++    <string name="xbox_open_error">Could not open the player. Check that a browser or Better xCloud is available.</string>
++</resources>
